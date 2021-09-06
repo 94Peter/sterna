@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"sterna/db"
-	"sterna/export"
-	"sterna/gcp"
-	"sterna/mail"
 	"time"
 
-	"sterna/api"
-	"sterna/auth"
-	"sterna/log"
-	"sterna/util"
+	"github.com/94peter/sterna/db"
+	"github.com/94peter/sterna/export"
+	"github.com/94peter/sterna/gcp"
+	"github.com/94peter/sterna/mail"
+
+	"github.com/94peter/sterna/api"
+	"github.com/94peter/sterna/auth"
+	"github.com/94peter/sterna/log"
+	"github.com/94peter/sterna/util"
 
 	yaml "gopkg.in/yaml.v2"
 )

@@ -4,9 +4,10 @@ import (
 	"context"
 	//"fmt"
 	"net/http"
-	"sterna/util"
 	"sync"
 	"time"
+
+	"github.com/94peter/sterna/util"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

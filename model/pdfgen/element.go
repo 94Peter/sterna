@@ -3,9 +3,10 @@ package pdfgen
 import (
 	"context"
 	"errors"
-	"sterna/export/pdf"
-	"sterna/gcp"
-	"sterna/util"
+
+	"github.com/94peter/sterna/export/pdf"
+	"github.com/94peter/sterna/gcp"
+	"github.com/94peter/sterna/util"
 
 	"github.com/signintech/gopdf"
 )

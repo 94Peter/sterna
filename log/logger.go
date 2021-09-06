@@ -6,7 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"sterna/util"
+
+	"github.com/94peter/sterna/util"
 )
 
 const (

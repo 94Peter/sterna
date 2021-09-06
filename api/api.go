@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"sterna/api/mid"
-	"sterna/auth"
+	"github.com/94peter/sterna/api/mid"
+	"github.com/94peter/sterna/auth"
 
 	"github.com/gorilla/mux"
 )

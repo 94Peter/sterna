@@ -7,9 +7,10 @@ import (
 	"errors"
 	"html/template"
 	"io"
-	"sterna/export"
-	"sterna/export/pdf"
-	"sterna/gcp"
+
+	"github.com/94peter/sterna/export"
+	"github.com/94peter/sterna/export/pdf"
+	"github.com/94peter/sterna/gcp"
 )
 
 func NewPdfGenConf(ctx context.Context, data interface{}, storage gcp.Storage) *pdfGenConf {

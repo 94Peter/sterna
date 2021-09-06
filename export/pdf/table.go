@@ -1,7 +1,7 @@
 package pdf
 
 import (
-	"sterna/util"
+	"github.com/94peter/sterna/util"
 )
 
 type TableStyle interface {

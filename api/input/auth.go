@@ -2,8 +2,9 @@ package input
 
 import (
 	"net/http"
-	"sterna/dao"
-	"sterna/util"
+
+	"github.com/94peter/sterna/dao"
+	"github.com/94peter/sterna/util"
 )
 
 const (

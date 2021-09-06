@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"sterna/log"
+	"github.com/94peter/sterna/log"
 
 	"github.com/gorilla/mux"
 )

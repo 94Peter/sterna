@@ -3,11 +3,12 @@ package mid
 import (
 	"fmt"
 	"net/http"
-	"sterna/api/input"
-	"sterna/auth"
-	"sterna/log"
-	"sterna/util"
 	"strings"
+
+	"github.com/94peter/sterna/api/input"
+	"github.com/94peter/sterna/auth"
+	"github.com/94peter/sterna/log"
+	"github.com/94peter/sterna/util"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"

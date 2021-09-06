@@ -13,10 +13,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"sterna/dao"
-	"sterna/db"
-	"sterna/log"
-	"sterna/util"
+	"github.com/94peter/sterna/dao"
+	"github.com/94peter/sterna/db"
+	"github.com/94peter/sterna/log"
+	"github.com/94peter/sterna/util"
 )
 
 type MgoAggregate interface {

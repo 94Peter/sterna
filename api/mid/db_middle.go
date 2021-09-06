@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"runtime"
 
-	"sterna/api/input"
-	"sterna/db"
-	"sterna/log"
-	"sterna/util"
+	"github.com/94peter/sterna/api/input"
+	"github.com/94peter/sterna/db"
+	"github.com/94peter/sterna/log"
+	"github.com/94peter/sterna/util"
 
 	"github.com/google/uuid"
 )

@@ -7,8 +7,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
-	"sterna/util"
 	"time"
+
+	"github.com/94peter/sterna/util"
 
 	"cloud.google.com/go/storage"
 	"golang.org/x/oauth2/google"

@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"sterna/export/pdf"
 	"testing"
+
+	"github.com/94peter/sterna/export/pdf"
 
 	"github.com/stretchr/testify/assert"
 )

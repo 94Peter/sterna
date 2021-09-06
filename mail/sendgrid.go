@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"sterna/log"
+	"github.com/94peter/sterna/log"
 
 	sendgrid "github.com/sendgrid/sendgrid-go"
 	sgMail "github.com/sendgrid/sendgrid-go/helpers/mail"

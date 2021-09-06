@@ -2,7 +2,8 @@ package mid
 
 import (
 	"net/http"
-	"sterna/auth"
+
+	"github.com/94peter/sterna/auth"
 )
 
 type AuthMidInter interface {

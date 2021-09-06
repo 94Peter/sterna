@@ -6,7 +6,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"sterna/util"
+
+	"github.com/94peter/sterna/util"
 )
 
 type TransmitSecurity interface {

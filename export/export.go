@@ -2,7 +2,8 @@ package export
 
 import (
 	"io"
-	"sterna/export/pdf"
+
+	"github.com/94peter/sterna/export/pdf"
 )
 
 type ExportConf interface {

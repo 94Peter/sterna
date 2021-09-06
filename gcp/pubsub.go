@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sterna/log"
-	"sterna/util"
 	"sync"
+
+	"github.com/94peter/sterna/log"
+	"github.com/94peter/sterna/util"
 
 	//"log"
 
