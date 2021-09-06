@@ -1,4 +1,4 @@
-module sterna
+module github.com/94peter/sterna
 
 go 1.15
 
