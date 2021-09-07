@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/94peter/sterna/api/input"
 	"github.com/94peter/sterna/auth"
 	"github.com/94peter/sterna/log"
 	"github.com/94peter/sterna/util"
@@ -132,13 +131,13 @@ func (am *authMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc 
 
 				usage, ok := jwtToken.Header["usa"]
 				if !ok {
-					reqUser := input.NewReqUser(
+					reqUser := auth.NewReqUser(
 						mapClaims["sub"].(string),
 						mapClaims["acc"].(string),
 						mapClaims["nam"].(string),
 						permission,
 					)
-					r = util.SetCtxKeyVal(r, input.CtxUserInfoKey, reqUser)
+					r = util.SetCtxKeyVal(r, auth.CtxUserInfoKey, reqUser)
 				} else if usage == "access" {
 					source := mapClaims["source"].(string)
 					id := mapClaims["sourceId"].(string)
@@ -147,7 +146,7 @@ func (am *authMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc 
 						w.Write([]byte("token permision invalid"))
 						return
 					}
-					reqUser := input.NewAccessGuest(
+					reqUser := auth.NewAccessGuest(
 						source,
 						id,
 						r.RemoteAddr,
@@ -155,9 +154,9 @@ func (am *authMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc 
 						mapClaims["db"].(string),
 						permission,
 					)
-					r = util.SetCtxKeyVal(r, input.CtxUserInfoKey, reqUser)
+					r = util.SetCtxKeyVal(r, auth.CtxUserInfoKey, reqUser)
 				} else if usage == "comp" {
-					reqUser := input.NewCompUser(
+					reqUser := auth.NewCompUser(
 						mapClaims["sub"].(string),
 						mapClaims["acc"].(string),
 						mapClaims["nam"].(string),
@@ -165,7 +164,7 @@ func (am *authMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc 
 						mapClaims["comp"].(string),
 						permission,
 					)
-					r = util.SetCtxKeyVal(r, input.CtxUserInfoKey, reqUser)
+					r = util.SetCtxKeyVal(r, auth.CtxUserInfoKey, reqUser)
 				}
 			}
 			f(w, r)

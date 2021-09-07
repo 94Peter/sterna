@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/94peter/sterna/api/input"
+	"github.com/94peter/sterna/auth"
 	"github.com/94peter/sterna/db"
 	"github.com/94peter/sterna/log"
 	"github.com/94peter/sterna/util"
@@ -41,7 +41,7 @@ func (am *dbMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			uuid := uuid.New().String()
 			l := am.di.NewLogger(uuid)
-			userInfo := input.GetUserInfo(r)
+			userInfo := auth.GetUserInfo(r)
 			userDB := ""
 			if userInfo != nil && userInfo.GetDB() != "" {
 				userDB = "ws:" + userInfo.GetDB()
