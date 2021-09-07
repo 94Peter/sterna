@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	//"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -44,9 +43,6 @@ type MongoConf struct {
 }
 
 func (mc MongoConf) NewMongoDBClient(ctx context.Context, userDB string) (MongoDBClient, error) {
-	// uri := fmt.Sprintf("mongodb+srv://%s:%s@%s/<dbname>?retryWrites=true&w=majority", mc.User, mc.Pass, mc.Host)
-	// mongo.NewClient(optionsC)
-	// uri := "mongodb://raccoonDB:gotgok-pwd@cluster0-shard-00-00.x05tb.gcp.mongodb.net:27017,cluster0-shard-00-01.x05tb.gcp.mongodb.net:27017,cluster0-shard-00-02.x05tb.gcp.mongodb.net:27017/admin?ssl=true&replicaSet=atlas-pbbtuq-shard-0&authSource=admin&retryWrites=true&w=majority"
 	if mc.Uri == "" {
 		panic("mongo uri not set")
 	}

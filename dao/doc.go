@@ -21,12 +21,6 @@ type DocInter interface {
 	GetID() interface{}
 	SetCreator(u LogUser)
 	AddRecord(u LogUser, msg string) []*record
-	//GetUpdateField() bson.M
-
-	//GetSaveTxnOp(lu LogUser) txn.Op
-	// GetUpdateTxnOp(data bson.D) txn.Op
-	// GetDelTxnOp() txn.Op
-
 	GetIndexes() []mongo.IndexModel
 }
 
@@ -70,40 +64,6 @@ func (c *CommonDoc) SetCreator(lu LogUser) {
 	})
 }
 
-// func (u *CommonDoc) GetMongoIndexes() []mgo.Index {
-// 	return nil
-// }
-
-// func (u *CommonDoc) getSaveTxnOp(doc DocInter, lu LogUser) txn.Op {
-// 	u.SetCreator(lu)
-// 	doc.SetCompany(lu.GetCompany())
-// 	d := doc.GetDoc()
-// 	return txn.Op{
-// 		C:      doc.GetC(),
-// 		Id:     doc.GetID(),
-// 		Assert: txn.DocMissing,
-// 		Insert: d,
-// 	}
-// }
-
-// func (u *CommonDoc) getUpdateTxnOp(doc DocInter, data bson.D) txn.Op {
-// 	return txn.Op{
-// 		C:      doc.GetC(),
-// 		Id:     doc.GetID(),
-// 		Assert: txn.DocExists,
-// 		Update: bson.D{{Name: "$set", Value: data}},
-// 	}
-// }
-
-// func (u *CommonDoc) getDelTxnOp(doc DocInter) txn.Op {
-// 	return txn.Op{
-// 		C:      doc.GetC(),
-// 		Id:     doc.GetID(),
-// 		Assert: txn.DocExists,
-// 		Remove: true,
-// 	}
-// }
-
 func (u *CommonDoc) GetC() string {
 	panic("must override")
 }
@@ -144,15 +104,22 @@ type PipelineQryInter interface {
 	GetPipeline() []bson.M
 }
 
-type CommonPipeline struct {
+func NewPipelineQry(q bson.M, pipeline []bson.M) PipelineQryInter {
+	return &commonPipeline{
+		q:        q,
+		pipeline: pieline,
+	}
+}
+
+type commonPipeline struct {
 	q        bson.M
 	pipeline []bson.M
 }
 
-func (u *CommonPipeline) GetQ() bson.M {
+func (u *commonPipeline) GetQ() bson.M {
 	return u.q
 }
 
-func (u *CommonPipeline) GetPipeline() []bson.M {
+func (u *commonPipeline) GetPipeline() []bson.M {
 	return u.pipeline
 }
