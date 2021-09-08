@@ -28,8 +28,8 @@ type Storage interface {
 	GetAttr(ctx context.Context, key string, pm Perm) (*storage.ObjectAttrs, error)
 	RemoveObject(ctx context.Context, key string, pm Perm) error
 	GetPublicUrl(ctx context.Context, object string) (myurl string, err error)
-	WriteString(ctx context.Context, key string, content string, pm Perm) (path string, err error)
-	Write(ctx context.Context, key string, pm Perm, writeData func(w io.Writer) error) error
+	WriteString(ctx context.Context, key string, content string, pm Perm) error
+	Write(ctx context.Context, key string, pm Perm, writeData func(w io.Writer) error) (path string, err error)
 	OpenFile(ctx context.Context, key string, pm Perm) (io.Reader, error)
 	SignedURL(key string, contentType string, pm Perm, expDuration time.Duration) (url string, err error)
 }
