@@ -28,7 +28,7 @@ type Storage interface {
 	GetAttr(ctx context.Context, key string, pm Perm) (*storage.ObjectAttrs, error)
 	RemoveObject(ctx context.Context, key string, pm Perm) error
 	GetPublicUrl(ctx context.Context, object string) (myurl string, err error)
-	WriteString(ctx context.Context, key string, content string, pm Perm) error
+	WriteString(ctx context.Context, key string, content string, pm Perm) (path string, err error)
 	Write(ctx context.Context, key string, pm Perm, writeData func(w io.Writer) error) error
 	OpenFile(ctx context.Context, key string, pm Perm) (io.Reader, error)
 	SignedURL(key string, contentType string, pm Perm, expDuration time.Duration) (url string, err error)
@@ -67,10 +67,11 @@ func (gcp *GcpConf) getClient(ctx context.Context) (*storage.Client, error) {
 	return storage.NewClient(ctx, option.WithCredentials(credentails))
 }
 
-func (gcp *GcpConf) Write(ctx context.Context, key string, pm Perm, writeData func(w io.Writer) error) error {
+func (gcp *GcpConf) Write(ctx context.Context, key string, pm Perm, writeData func(w io.Writer) error) (path string, err error) {
 	client, err := gcp.getClient(ctx)
 	if err != nil {
-		return fmt.Errorf("storage.NewClient: %v", err)
+		err = fmt.Errorf("storage.NewClient: %v", err)
+		return
 	}
 	defer client.Close()
 
@@ -81,12 +82,15 @@ func (gcp *GcpConf) Write(ctx context.Context, key string, pm Perm, writeData fu
 
 	wc := client.Bucket(bucket).Object(key).NewWriter(ctx)
 	if err = writeData(wc); err != nil {
-		return fmt.Errorf("write file error: %s", err.Error())
+		err = fmt.Errorf("write file error: %s", err.Error())
+		return
 	}
-	if err := wc.Close(); err != nil {
-		return fmt.Errorf("createFile: unable to close bucket %q, file %q: %v", gcp.Bucket, key, err)
+	if err = wc.Close(); err != nil {
+		err = fmt.Errorf("createFile: unable to close bucket %q, file %q: %v", gcp.Bucket, key, err)
+		return
 	}
-	return nil
+	path = wc.Attrs().Name
+	return
 }
 
 func (gcp *GcpConf) WriteString(ctx context.Context, key string, content string, pm Perm) error {
