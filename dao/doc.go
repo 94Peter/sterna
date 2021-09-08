@@ -107,7 +107,7 @@ type PipelineQryInter interface {
 func NewPipelineQry(q bson.M, pipeline []bson.M) PipelineQryInter {
 	return &commonPipeline{
 		q:        q,
-		pipeline: pieline,
+		pipeline: pipeline,
 	}
 }
 

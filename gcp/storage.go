@@ -29,6 +29,7 @@ type Storage interface {
 	RemoveObject(ctx context.Context, key string, pm Perm) error
 	GetPublicUrl(ctx context.Context, object string) (myurl string, err error)
 	WriteString(ctx context.Context, key string, content string, pm Perm) error
+	Write(ctx context.Context, key string, pm Perm, writeData func(w io.Writer) error) error
 	OpenFile(ctx context.Context, key string, pm Perm) (io.Reader, error)
 	SignedURL(key string, contentType string, pm Perm, expDuration time.Duration) (url string, err error)
 }
@@ -64,6 +65,28 @@ func (gcp *GcpConf) getClient(ctx context.Context) (*storage.Client, error) {
 		return nil, err
 	}
 	return storage.NewClient(ctx, option.WithCredentials(credentails))
+}
+
+func (gcp *GcpConf) Write(ctx context.Context, key string, pm Perm, writeData func(w io.Writer) error) error {
+	client, err := gcp.getClient(ctx)
+	if err != nil {
+		return fmt.Errorf("storage.NewClient: %v", err)
+	}
+	defer client.Close()
+
+	ctx, cancel := context.WithTimeout(ctx, time.Second*50)
+	defer cancel()
+
+	bucket := gcp.getBucket(pm)
+
+	wc := client.Bucket(bucket).Object(key).NewWriter(ctx)
+	if err = writeData(wc); err != nil {
+		return fmt.Errorf("write file error: %s", err.Error())
+	}
+	if err := wc.Close(); err != nil {
+		return fmt.Errorf("createFile: unable to close bucket %q, file %q: %v", gcp.Bucket, key, err)
+	}
+	return nil
 }
 
 func (gcp *GcpConf) WriteString(ctx context.Context, key string, content string, pm Perm) error {
