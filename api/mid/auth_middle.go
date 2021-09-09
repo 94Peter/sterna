@@ -132,6 +132,7 @@ func (am *authMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc 
 				usage, ok := jwtToken.Header["usa"]
 				if !ok {
 					reqUser := auth.NewReqUser(
+						iss,
 						mapClaims["sub"].(string),
 						mapClaims["acc"].(string),
 						mapClaims["nam"].(string),
@@ -147,6 +148,7 @@ func (am *authMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc 
 						return
 					}
 					reqUser := auth.NewAccessGuest(
+						iss,
 						source,
 						id,
 						r.RemoteAddr,
@@ -157,6 +159,7 @@ func (am *authMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc 
 					r = util.SetCtxKeyVal(r, auth.CtxUserInfoKey, reqUser)
 				} else if usage == "comp" {
 					reqUser := auth.NewCompUser(
+						iss,
 						mapClaims["sub"].(string),
 						mapClaims["acc"].(string),
 						mapClaims["nam"].(string),

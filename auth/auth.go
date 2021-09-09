@@ -39,20 +39,26 @@ const (
 
 type ReqUser interface {
 	dao.LogUser
+	Host() string
 	GetId() string
 	GetPerm() string
 	GetDB() string
 }
 
 type reqUserImpl struct {
-	Id      string
-	Account string
-	Name    string
-	Perm    string
+	host string
+	id   string
+	acc  string
+	name string
+	perm string
+}
+
+func (ru *reqUserImpl) Host() string {
+	return ru.host
 }
 
 func (ru reqUserImpl) GetId() string {
-	return ru.Id
+	return ru.id
 }
 
 func (ru reqUserImpl) GetDB() string {
@@ -61,23 +67,24 @@ func (ru reqUserImpl) GetDB() string {
 }
 
 func (ru reqUserImpl) GetName() string {
-	return ru.Name
+	return ru.name
 }
 
 func (ru reqUserImpl) GetAccount() string {
-	return ru.Account
+	return ru.acc
 }
 
 func (ru reqUserImpl) GetPerm() string {
-	return ru.Perm
+	return ru.perm
 }
 
-func NewReqUser(uid, acc, name, perm string) ReqUser {
-	return reqUserImpl{
-		Account: acc,
-		Id:      uid,
-		Name:    name,
-		Perm:    perm,
+func NewReqUser(host, uid, acc, name, perm string) ReqUser {
+	return &reqUserImpl{
+		host: host,
+		acc:  acc,
+		id:   uid,
+		name: name,
+		perm: perm,
 	}
 }
 
@@ -88,50 +95,56 @@ type AccessGuest interface {
 }
 
 type accessGuestImpl struct {
-	Source   string
-	SourceID string
-	DB       string
-	Account  string
-	Name     string
-	Perm     string
+	host     string
+	source   string
+	sourceID string
+	dB       string
+	account  string
+	name     string
+	perm     string
 }
 
-func (ru accessGuestImpl) GetId() string {
+func (ru *accessGuestImpl) Host() string {
+	return ru.host
+}
+
+func (ru *accessGuestImpl) GetId() string {
 	return ""
 }
 
-func (ru accessGuestImpl) GetDB() string {
-	return ru.DB
+func (ru *accessGuestImpl) GetDB() string {
+	return ru.dB
 }
 
-func (ru accessGuestImpl) GetName() string {
-	return ru.Name
+func (ru *accessGuestImpl) GetName() string {
+	return ru.name
 }
 
-func (ru accessGuestImpl) GetAccount() string {
-	return ru.Account
+func (ru *accessGuestImpl) GetAccount() string {
+	return ru.account
 }
 
-func (ru accessGuestImpl) GetSource() string {
-	return ru.Source
+func (ru *accessGuestImpl) GetSource() string {
+	return ru.source
 }
 
-func (ru accessGuestImpl) GetSourceID() string {
-	return ru.SourceID
+func (ru *accessGuestImpl) GetSourceID() string {
+	return ru.sourceID
 }
 
-func (ru accessGuestImpl) GetPerm() string {
-	return ru.Perm
+func (ru *accessGuestImpl) GetPerm() string {
+	return ru.perm
 }
 
-func NewAccessGuest(source, sid, acc, name, db, perm string) AccessGuest {
-	return accessGuestImpl{
-		Source:   source,
-		SourceID: sid,
-		DB:       db,
-		Account:  acc,
-		Name:     name,
-		Perm:     perm,
+func NewAccessGuest(host, source, sid, acc, name, db, perm string) AccessGuest {
+	return &accessGuestImpl{
+		host:     host,
+		source:   source,
+		sourceID: sid,
+		dB:       db,
+		account:  acc,
+		name:     name,
+		perm:     perm,
 	}
 }
 
@@ -142,7 +155,7 @@ type CompanyUser interface {
 }
 
 type compUserImpl struct {
-	reqUserImpl
+	*reqUserImpl
 	CompID string
 	Comp   string
 }
@@ -159,13 +172,14 @@ func (c compUserImpl) GetComp() string {
 	return c.Comp
 }
 
-func NewCompUser(uid, acc, name, compID, comp, perm string) CompanyUser {
+func NewCompUser(host, uid, acc, name, compID, comp, perm string) CompanyUser {
 	return compUserImpl{
-		reqUserImpl: reqUserImpl{
-			Account: acc,
-			Id:      uid,
-			Name:    name,
-			Perm:    perm,
+		reqUserImpl: &reqUserImpl{
+			host: host,
+			acc:  acc,
+			id:   uid,
+			name: name,
+			perm: perm,
 		},
 		CompID: compID,
 		Comp:   comp,
