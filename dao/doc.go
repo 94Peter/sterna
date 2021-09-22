@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -97,29 +96,4 @@ func GetObjectID(id interface{}) (primitive.ObjectID, error) {
 		return primitive.NilObjectID, errors.New("not support type: " + dtype)
 	}
 	return myID, nil
-}
-
-type PipelineQryInter interface {
-	GetQ() bson.M
-	GetPipeline() []bson.M
-}
-
-func NewPipelineQry(q bson.M, pipeline []bson.M) PipelineQryInter {
-	return &commonPipeline{
-		q:        q,
-		pipeline: pipeline,
-	}
-}
-
-type commonPipeline struct {
-	q        bson.M
-	pipeline []bson.M
-}
-
-func (u *commonPipeline) GetQ() bson.M {
-	return u.q
-}
-
-func (u *commonPipeline) GetPipeline() []bson.M {
-	return u.pipeline
 }
