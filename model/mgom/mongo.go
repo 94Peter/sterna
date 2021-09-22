@@ -31,6 +31,7 @@ type MgoDBModel interface {
 	RemoveAll(d dao.DocInter, q primitive.M, u dao.LogUser) (int64, error)
 	RemoveByID(d dao.DocInter, u dao.LogUser) (int64, error)
 	UpdateOne(d dao.DocInter, fields bson.D, u dao.LogUser) (int64, error)
+	Upsert(d dao.DocInter, u dao.LogUser) (interface{}, error)
 	FindByID(d dao.DocInter) error
 	FindOne(d dao.DocInter, q bson.M, option ...*options.FindOneOptions) error
 	Find(d dao.DocInter, q bson.M) (interface{}, error)
@@ -215,6 +216,19 @@ func (mm *mgoModelImpl) UpdateOne(d dao.DocInter, fields bson.D, u dao.LogUser) 
 	return result.ModifiedCount, err
 }
 
+func (mm *mgoModelImpl) Upsert(d dao.DocInter, u dao.LogUser) (interface{}, error) {
+	collection := mm.db.Collection(d.GetC())
+	result, err := collection.UpdateOne(mm.ctx, bson.M{"_id": d.GetID()}, bson.M{"$set": d.GetDoc()}, options.Update().SetUpsert(true))
+
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
+	if result.UpsertedCount == 0 {
+		return primitive.NilObjectID, errors.New("no upserted")
+	}
+	return d.GetID(), nil
+}
+
 func (mm *mgoModelImpl) FindByID(d dao.DocInter) error {
 	return mm.FindOne(d, bson.M{"_id": d.GetID()})
 }
@@ -308,7 +322,7 @@ func (mm *mgoModelImpl) PagePipeFind(aggr MgoAggregate, filter bson.M, limit, pa
 	slice := reflect.MakeSlice(reflect.SliceOf(myType), 0, 0).Interface()
 
 	collection := mm.db.Collection(aggr.GetC())
-	pl := append(aggr.GetPipeline(filter), bson.D{{"$skip", skip}}, bson.D{{"$limit", limit}})
+	pl := append(aggr.GetPipeline(filter), bson.D{{Key: "$skip", Value: skip}}, bson.D{{Key: "$limit", Value: limit}})
 	sortCursor, err := collection.Aggregate(mm.ctx, pl)
 	if err != nil {
 		return nil, err
