@@ -184,7 +184,43 @@ func NewCompUser(host, uid, acc, name, compID, comp, perm string) CompanyUser {
 		CompID: compID,
 		Comp:   comp,
 	}
+}
 
+type guestUser struct {
+	host string
+	ip   string
+}
+
+func NewGuestUser(host, ip string) ReqUser {
+	return &guestUser{
+		host: host,
+		ip:   ip,
+	}
+}
+
+func (ru *guestUser) Host() string {
+	return ru.host
+}
+
+func (ru *guestUser) GetId() string {
+	return ru.ip
+}
+
+func (ru *guestUser) GetDB() string {
+	// ReqUser無userDB
+	return ""
+}
+
+func (ru *guestUser) GetName() string {
+	return ru.ip
+}
+
+func (ru *guestUser) GetAccount() string {
+	return ru.ip
+}
+
+func (ru *guestUser) GetPerm() string {
+	return string(PermGuest)
 }
 
 func GetUserInfo(req *http.Request) ReqUser {

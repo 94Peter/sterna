@@ -2,6 +2,7 @@ package mid
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 
@@ -169,6 +170,10 @@ func (am *authMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc 
 					)
 					r = util.SetCtxKeyVal(r, auth.CtxUserInfoKey, reqUser)
 				}
+			} else {
+				ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+				reqUser := auth.NewGuestUser(r.Host, ip)
+				r = util.SetCtxKeyVal(r, auth.CtxUserInfoKey, reqUser)
 			}
 			f(w, r)
 		}
