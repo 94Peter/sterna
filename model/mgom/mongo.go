@@ -34,7 +34,7 @@ type MgoDBModel interface {
 	Upsert(d dao.DocInter, u dao.LogUser) (interface{}, error)
 	FindByID(d dao.DocInter) error
 	FindOne(d dao.DocInter, q bson.M, option ...*options.FindOneOptions) error
-	Find(d dao.DocInter, q bson.M) (interface{}, error)
+	Find(d dao.DocInter, q bson.M, option ...*options.FindOptions) (interface{}, error)
 	PipeFindOne(aggr MgoAggregate, filter bson.M) error
 	PipeFind(aggr MgoAggregate, filter bson.M) (interface{}, error)
 	PagePipeFind(aggr MgoAggregate, filter bson.M, limit, page int64) (interface{}, error)
@@ -244,11 +244,11 @@ func (mm *mgoModelImpl) FindOne(d dao.DocInter, q bson.M, option ...*options.Fin
 	return collection.FindOne(mm.ctx, q, option...).Decode(d)
 }
 
-func (mm *mgoModelImpl) Find(d dao.DocInter, q bson.M) (interface{}, error) {
+func (mm *mgoModelImpl) Find(d dao.DocInter, q bson.M, option ...*options.FindOptions) (interface{}, error) {
 	myType := reflect.TypeOf(d)
 	slice := reflect.MakeSlice(reflect.SliceOf(myType), 0, 0).Interface()
 	collection := mm.db.Collection(d.GetC())
-	sortCursor, err := collection.Find(mm.ctx, q)
+	sortCursor, err := collection.Find(mm.ctx, q, option...)
 	if err != nil {
 		return nil, err
 	}
