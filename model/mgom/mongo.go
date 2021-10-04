@@ -58,6 +58,7 @@ type MgoDBModel interface {
 	GetPipePaginationSource(aggr MgoAggregate, q bson.M) util.PaginationSource
 
 	NewFindMgoDS(d dao.DocInter, q bson.M, opts ...*options.FindOptions) MgoDS
+	NewPipeFindMgoDS(d MgoAggregate, q bson.M, opts ...*options.AggregateOptions) MgoDS
 }
 
 func NewMgoModel(ctx context.Context, db *mongo.Database, log log.Logger) MgoDBModel {
