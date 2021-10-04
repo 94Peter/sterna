@@ -37,11 +37,16 @@ type MgoDBModel interface {
 	Find(d dao.DocInter, q bson.M, option ...*options.FindOptions) (interface{}, error)
 	FindAndExec(
 		d dao.DocInter, q bson.M,
-		exec func(d dao.DocInter) error,
+		exec func(i interface{}) error,
 		opts ...*options.FindOptions,
 	) error
 	PipeFindOne(aggr MgoAggregate, filter bson.M) error
-	PipeFind(aggr MgoAggregate, filter bson.M) (interface{}, error)
+	PipeFind(aggr MgoAggregate, filter bson.M, opts ...*options.AggregateOptions) (interface{}, error)
+	PipeFindAndExec(
+		aggr MgoAggregate, q bson.M,
+		exec func(i interface{}) error,
+		opts ...*options.AggregateOptions,
+	) error
 	PagePipeFind(aggr MgoAggregate, filter bson.M, limit, page int64) (interface{}, error)
 	PageFind(d dao.DocInter, q bson.M, limit, page int64) (interface{}, error)
 	CountDocuments(d dao.DocInter, q bson.M) (int64, error)
@@ -116,7 +121,7 @@ func (mm *mgoModelImpl) SetDB(db *mongo.Database) {
 
 func (mm *mgoModelImpl) FindAndExec(
 	d dao.DocInter, q bson.M,
-	exec func(d dao.DocInter) error,
+	exec func(i interface{}) error,
 	opts ...*options.FindOptions,
 ) error {
 	var err error
@@ -290,11 +295,11 @@ func (mm *mgoModelImpl) Find(d dao.DocInter, q bson.M, option ...*options.FindOp
 	return slice, err
 }
 
-func (mm *mgoModelImpl) PipeFind(aggr MgoAggregate, filter bson.M) (interface{}, error) {
+func (mm *mgoModelImpl) PipeFind(aggr MgoAggregate, filter bson.M, opts ...*options.AggregateOptions) (interface{}, error) {
 	myType := reflect.TypeOf(aggr)
 	slice := reflect.MakeSlice(reflect.SliceOf(myType), 0, 0).Interface()
 	collection := mm.db.Collection(aggr.GetC())
-	sortCursor, err := collection.Aggregate(mm.ctx, aggr.GetPipeline(filter))
+	sortCursor, err := collection.Aggregate(mm.ctx, aggr.GetPipeline(filter), opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -303,6 +308,25 @@ func (mm *mgoModelImpl) PipeFind(aggr MgoAggregate, filter bson.M) (interface{},
 		return nil, err
 	}
 	return slice, err
+}
+
+func (mm *mgoModelImpl) PipeFindAndExec(aggr MgoAggregate, filter bson.M, exec func(i interface{}) error, opts ...*options.AggregateOptions) error {
+	collection := mm.db.Collection(aggr.GetC())
+	sortCursor, err := collection.Aggregate(mm.ctx, aggr.GetPipeline(filter), opts...)
+	if err != nil {
+		return err
+	}
+	for sortCursor.Next(mm.ctx) {
+		err = sortCursor.Decode(aggr)
+		if err != nil {
+			return err
+		}
+		err = exec(aggr)
+		if err != nil {
+			return err
+		}
+	}
+	return err
 }
 
 func (mm *mgoModelImpl) PipeFindOne(aggr MgoAggregate, filter bson.M) error {
