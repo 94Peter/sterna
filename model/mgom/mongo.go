@@ -35,6 +35,11 @@ type MgoDBModel interface {
 	FindByID(d dao.DocInter) error
 	FindOne(d dao.DocInter, q bson.M, option ...*options.FindOneOptions) error
 	Find(d dao.DocInter, q bson.M, option ...*options.FindOptions) (interface{}, error)
+	FindAndExec(
+		d dao.DocInter, q bson.M,
+		exec func(d dao.DocInter) error,
+		opts ...*options.FindOptions,
+	) error
 	PipeFindOne(aggr MgoAggregate, filter bson.M) error
 	PipeFind(aggr MgoAggregate, filter bson.M) (interface{}, error)
 	PagePipeFind(aggr MgoAggregate, filter bson.M, limit, page int64) (interface{}, error)
@@ -46,6 +51,8 @@ type MgoDBModel interface {
 	//Reference to customer code, use for aggregate pagination
 	AggrCountDocuments(aggr MgoAggregate, q bson.M) (int64, error)
 	GetPipePaginationSource(aggr MgoAggregate, q bson.M) util.PaginationSource
+
+	NewFindMgoDS(d dao.DocInter, q bson.M, opts ...*options.FindOptions) MgoDS
 }
 
 func NewMgoModel(ctx context.Context, db *mongo.Database, log log.Logger) MgoDBModel {
@@ -105,6 +112,30 @@ type mgoModelImpl struct {
 
 func (mm *mgoModelImpl) SetDB(db *mongo.Database) {
 	mm.db = db
+}
+
+func (mm *mgoModelImpl) FindAndExec(
+	d dao.DocInter, q bson.M,
+	exec func(d dao.DocInter) error,
+	opts ...*options.FindOptions,
+) error {
+	var err error
+	collection := mm.db.Collection(d.GetC())
+	sortCursor, err := collection.Find(mm.ctx, q, opts...)
+	if err != nil {
+		return nil
+	}
+	for sortCursor.Next(mm.ctx) {
+		err = sortCursor.Decode(d)
+		if err != nil {
+			return err
+		}
+		err = exec(d)
+		if err != nil {
+			return err
+		}
+	}
+	return err
 }
 
 func (mm *mgoModelImpl) CountDocuments(d dao.DocInter, q bson.M) (int64, error) {
