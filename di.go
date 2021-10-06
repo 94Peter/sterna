@@ -24,7 +24,7 @@ type DI interface {
 	log.LoggerDI
 	api.ApiDI
 	auth.TransmitSecurity
-	auth.JwtToken
+	auth.JwtDI
 	gcp.Storage
 	gcp.PubSubConf
 	mail.MailConf

@@ -19,6 +19,7 @@ type JwtToken interface {
 
 type JwtDI interface {
 	GetKid() string
+	NewJwt() JwtToken
 }
 
 type JwtConf struct {
@@ -76,6 +77,10 @@ func (j *JwtConf) getPrivateKey() (*rsa.PrivateKey, error) {
 
 func (j *JwtConf) GetKid() string {
 	return j.Header.Kid
+}
+
+func (j *JwtConf) NewJwt() JwtToken {
+	return j
 }
 
 func (j *JwtConf) ParseToken(tokenStr string) (*jwt.Token, error) {
