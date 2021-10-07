@@ -371,3 +371,19 @@ func IsHomeNum(number string) bool {
 	}
 	return true
 }
+
+func IsLegalPhoneNumber(num string) (bool, error) {
+	if len(num) != 13 && len(num) != 12 && len(num) != 11 && len(num) != 10 {
+		return false, errors.New("Number' format is like 0935120080,02XXXXXXXX,+8862XXXXXXXX,+886935120080")
+	}
+	if len(num) == 10 {
+		if m, _ := regexp.MatchString(`^0[2-9]\d{8}$`, num); !m {
+			return false, errors.New("Number' format is like 0935120080,02XXXXXXXX")
+		}
+		return true, nil
+	}
+	if x, _ := regexp.MatchString(`^\+(\d{1,3})[2-9](\d{8})$`, num); !x {
+		return false, errors.New("Number' format is like +8862XXXXXXXX,+886935120080")
+	}
+	return true, nil
+}
