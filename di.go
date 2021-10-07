@@ -29,6 +29,7 @@ type DI interface {
 	gcp.PubSubConf
 	mail.MailConf
 	export.ExportConf
+	LocationDI
 }
 
 type di struct {
@@ -40,6 +41,7 @@ type di struct {
 	*gcp.GcpConf               `yaml:"gcp"`
 	*mail.SendGridConf         `yaml:"mail"`
 	*export.MyExportConf       `yaml:"export"`
+	location                   *time.Location
 }
 
 var mydi *di
@@ -92,6 +94,21 @@ func (d *di) Close(key string) {
 
 }
 
+func (d *di) SetLocation(timezone string) {
+	loc, err := time.LoadLocation(timezone)
+	if err != nil {
+		panic(err)
+	}
+	d.location = loc
+}
+
+func (d *di) Location() *time.Location {
+	if d.location != nil {
+		return d.location
+	}
+	return time.Now().Location()
+}
+
 type modbusConf struct {
 	ReadDuration  string `yaml:"rd"`
 	WriteDuration string `yaml:"wd"`
@@ -111,4 +128,9 @@ func (mc modbusConf) GetWriteDuration() time.Duration {
 		panic(err)
 	}
 	return d
+}
+
+type LocationDI interface {
+	SetLocation(loc string)
+	Location() *time.Location
 }
