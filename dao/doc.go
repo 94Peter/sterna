@@ -34,6 +34,15 @@ type CommonDoc struct {
 	Records []*record
 }
 
+func NewRecord(date time.Time, acc, name, msg string) *record {
+	return &record{
+		Datetime: date,
+		Account:  acc,
+		Name:     name,
+		Summary:  msg,
+	}
+}
+
 type record struct {
 	Datetime time.Time
 	Summary  string
