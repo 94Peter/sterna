@@ -19,7 +19,7 @@ type DocInter interface {
 	GetDoc() interface{}
 	GetID() interface{}
 	SetCreator(u LogUser)
-	AddRecord(u LogUser, msg string) []*record
+	AddRecord(u LogUser, msg string) []*Record
 	GetIndexes() []mongo.IndexModel
 }
 
@@ -31,11 +31,11 @@ type ListDoc interface {
 }
 
 type CommonDoc struct {
-	Records []*record
+	Records []*Record
 }
 
-func NewRecord(date time.Time, acc, name, msg string) *record {
-	return &record{
+func NewRecord(date time.Time, acc, name, msg string) *Record {
+	return &Record{
 		Datetime: date,
 		Account:  acc,
 		Name:     name,
@@ -43,15 +43,15 @@ func NewRecord(date time.Time, acc, name, msg string) *record {
 	}
 }
 
-type record struct {
+type Record struct {
 	Datetime time.Time
 	Summary  string
 	Account  string
 	Name     string
 }
 
-func (c *CommonDoc) AddRecord(u LogUser, msg string) []*record {
-	c.Records = append(c.Records, &record{
+func (c *CommonDoc) AddRecord(u LogUser, msg string) []*Record {
+	c.Records = append(c.Records, &Record{
 		Datetime: time.Now(),
 		Summary:  msg,
 		Account:  u.GetAccount(),
@@ -64,7 +64,7 @@ func (c *CommonDoc) SetCreator(lu LogUser) {
 	if c == nil {
 		return
 	}
-	c.Records = append(c.Records, &record{
+	c.Records = append(c.Records, &Record{
 		Datetime: time.Now(),
 		Summary:  "create",
 		Account:  lu.GetAccount(),
