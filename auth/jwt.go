@@ -41,6 +41,7 @@ type JwtConf struct {
 
 func (j *JwtConf) getHeader() map[string]interface{} {
 	if j.myHeader != nil {
+		delete(j.myHeader, "usa")
 		return j.myHeader
 	}
 	j.myHeader = map[string]interface{}{
