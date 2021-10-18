@@ -149,7 +149,7 @@ func (j *JwtConf) GetJwtAccessToken(host string, source string, id interface{}, 
 		"source":   source,
 		"sourceId": id,
 		"db":       db,
-		"perm":     perm,
+		"per":      perm,
 	}))
 
 	token.Header = j.getHeader()
@@ -177,7 +177,7 @@ func (j *JwtConf) GetCompanyToken(host, compID, compName, userID, acc, userName 
 		"exp":    now.Add(time.Duration(180) * time.Minute).Unix(),
 		"comp":   compName,
 		"compID": compID,
-		"perm":   perm,
+		"per":    perm,
 		"sub":    userID,
 		"acc":    acc,
 		"nam":    userName,
