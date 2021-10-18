@@ -63,9 +63,10 @@ type MgoDBModel interface {
 
 func NewMgoModel(ctx context.Context, db *mongo.Database, log log.Logger) MgoDBModel {
 	return &mgoModelImpl{
-		db:  db,
-		ctx: ctx,
-		log: log,
+		db:      db,
+		ctx:     ctx,
+		selfCtx: context.Background(),
+		log:     log,
 	}
 }
 
@@ -80,9 +81,10 @@ func NewMgoModelByReq(req *http.Request, source string) MgoDBModel {
 	}
 	if source == db.CoreDB {
 		return &mgoModelImpl{
-			db:  mgodbclt.GetCoreDB(),
-			ctx: req.Context(),
-			log: log,
+			db:      mgodbclt.GetCoreDB(),
+			ctx:     req.Context(),
+			selfCtx: context.Background(),
+			log:     log,
 		}
 	}
 	udb := mgodbclt.GetUserDB()
@@ -90,9 +92,10 @@ func NewMgoModelByReq(req *http.Request, source string) MgoDBModel {
 		panic("user not set")
 	}
 	return &mgoModelImpl{
-		db:  udb,
-		ctx: req.Context(),
-		log: log,
+		db:      udb,
+		ctx:     req.Context(),
+		selfCtx: context.Background(),
+		log:     log,
 	}
 }
 
@@ -113,6 +116,7 @@ type mgoModelImpl struct {
 	log log.Logger
 	ctx context.Context
 
+	selfCtx       context.Context
 	indexExistMap map[string]bool
 }
 
@@ -150,7 +154,7 @@ func (mm *mgoModelImpl) CountDocuments(d dao.DocInter, q bson.M) (int64, error) 
 }
 
 func (mm *mgoModelImpl) isCollectExisted(d dao.DocInter) bool {
-	names, err := mm.db.ListCollectionNames(mm.ctx, bson.D{{Key: "name", Value: d.GetC()}})
+	names, err := mm.db.ListCollectionNames(mm.selfCtx, bson.D{{Key: "name", Value: d.GetC()}})
 	if ce, ok := err.(mongo.CommandError); ok {
 		if ce.Name == "OperationNotSupportedInTransaction" {
 			return true
@@ -167,10 +171,10 @@ func (mm *mgoModelImpl) CreateCollection(dlist ...dao.DocInter) (err error) {
 		mm.log.Info("check collection " + d.GetC())
 		if !mm.isCollectExisted(d) {
 			if len(d.GetIndexes()) > 0 {
-				indexStr, err = mm.db.Collection(d.GetC()).Indexes().CreateMany(mm.ctx, d.GetIndexes())
+				indexStr, err = mm.db.Collection(d.GetC()).Indexes().CreateMany(mm.selfCtx, d.GetIndexes())
 				mm.log.Info(fmt.Sprintln("created index: ", indexStr))
 			} else {
-				err = mm.db.CreateCollection(mm.ctx, d.GetC())
+				err = mm.db.CreateCollection(mm.selfCtx, d.GetC())
 			}
 			if err != nil {
 				mm.log.Warn(fmt.Sprintf("created collection [%s] fail: %s", d.GetC(), err.Error()))
