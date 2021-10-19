@@ -254,7 +254,10 @@ func (mm *mgoModelImpl) UpdateOne(d dao.DocInter, fields bson.D, u dao.LogUser) 
 			{Key: "$set", Value: fields},
 		},
 	)
-	return result.ModifiedCount, err
+	if result != nil {
+		return result.ModifiedCount, err
+	}
+	return 0, err
 }
 
 func (mm *mgoModelImpl) Upsert(d dao.DocInter, u dao.LogUser) (interface{}, error) {
