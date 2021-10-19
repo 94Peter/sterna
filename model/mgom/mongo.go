@@ -261,14 +261,16 @@ func (mm *mgoModelImpl) UpdateOne(d dao.DocInter, fields bson.D, u dao.LogUser) 
 }
 
 func (mm *mgoModelImpl) Upsert(d dao.DocInter, u dao.LogUser) (interface{}, error) {
-	collection := mm.db.Collection(d.GetC())
-	result, err := collection.UpdateOne(mm.ctx, bson.M{"_id": d.GetID()}, bson.M{"$set": d.GetDoc()}, options.Update().SetUpsert(true))
-
+	err := mm.CreateCollection(d)
 	if err != nil {
 		return primitive.NilObjectID, err
 	}
-	if result.UpsertedCount == 0 {
-		return primitive.NilObjectID, errors.New("no upserted")
+
+	collection := mm.db.Collection(d.GetC())
+	_, err = collection.UpdateOne(mm.ctx, bson.M{"_id": d.GetID()}, bson.M{"$set": d.GetDoc()}, options.Update().SetUpsert(true))
+
+	if err != nil {
+		return primitive.NilObjectID, err
 	}
 	return d.GetID(), nil
 }
