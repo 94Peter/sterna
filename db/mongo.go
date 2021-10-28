@@ -127,13 +127,6 @@ func (m *mgoClientImpl) Close() {
 	if m.session != nil {
 		m.session.EndSession(m.ctx)
 	}
-	for _, c := range m.dbPool {
-		err := c.Client().Disconnect(m.ctx)
-		if err != nil {
-			fmt.Println("disconnect error: " + err.Error())
-		}
-
-	}
 	if m.clt != nil {
 		err := m.clt.Disconnect(m.ctx)
 		if err != nil {
@@ -141,7 +134,6 @@ func (m *mgoClientImpl) Close() {
 		}
 	}
 	m.cancel()
-	fmt.Println("close db")
 }
 
 func (m *mgoClientImpl) Ping() error {
