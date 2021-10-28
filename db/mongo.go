@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -53,7 +54,6 @@ func (mc MongoConf) NewMongoDBClient(ctx context.Context, userDB string) (MongoD
 	if err != nil {
 		return nil, err
 	}
-
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	err = client.Connect(ctx)
 	if err != nil {
@@ -65,18 +65,12 @@ func (mc MongoConf) NewMongoDBClient(ctx context.Context, userDB string) (MongoD
 		cancel()
 		return nil, err
 	}
-	session, err := client.StartSession()
-	if err != nil {
-		cancel()
-		return nil, err
-	}
 
 	return &mgoClientImpl{
 		clt:       client,
 		ctx:       ctx,
 		cancel:    cancel,
 		dbPool:    make(map[string]*mongo.Database),
-		session:   session,
 		defaultDB: mc.DefaultDB,
 		userDB:    userDB,
 	}, nil
@@ -95,9 +89,18 @@ type mgoClientImpl struct {
 }
 
 func (m *mgoClientImpl) WithSession(f func(sc mongo.SessionContext) error) error {
-	if err := m.session.StartTransaction(); err != nil {
+	if m.session != nil {
+		return nil
+	}
+	session, err := m.clt.StartSession()
+	if err != nil {
+		m.cancel()
 		return err
 	}
+	if err := session.StartTransaction(); err != nil {
+		return err
+	}
+	m.session = session
 	return mongo.WithSession(m.ctx, m.session, f)
 }
 
@@ -124,8 +127,16 @@ func (m *mgoClientImpl) Close() {
 	if m.session != nil {
 		m.session.EndSession(m.ctx)
 	}
-	m.clt.Disconnect(m.ctx)
+	for _, c := range m.dbPool {
+		err := c.Client().Disconnect(m.ctx)
+		fmt.Println("disconnect error: " + err.Error())
+	}
+	if m.clt != nil {
+		err := m.clt.Disconnect(m.ctx)
+		fmt.Println("disconnect error: " + err.Error())
+	}
 	m.cancel()
+	fmt.Println("close db")
 }
 
 func (m *mgoClientImpl) Ping() error {
