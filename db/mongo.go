@@ -129,11 +129,16 @@ func (m *mgoClientImpl) Close() {
 	}
 	for _, c := range m.dbPool {
 		err := c.Client().Disconnect(m.ctx)
-		fmt.Println("disconnect error: " + err.Error())
+		if err != nil {
+			fmt.Println("disconnect error: " + err.Error())
+		}
+
 	}
 	if m.clt != nil {
 		err := m.clt.Disconnect(m.ctx)
-		fmt.Println("disconnect error: " + err.Error())
+		if err != nil {
+			fmt.Println("disconnect error: " + err.Error())
+		}
 	}
 	m.cancel()
 	fmt.Println("close db")
