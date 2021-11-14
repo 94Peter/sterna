@@ -33,7 +33,7 @@ type DI interface {
 }
 
 type di struct {
-	db.MongoConf               `yaml:"mongo,omitempty"`
+	*db.MongoConf              `yaml:"mongo,omitempty"`
 	*log.LoggerConf            `yaml:"log,omitempty"`
 	*api.APIConf               `yaml:"api,omitempty"`
 	*auth.TransmitSecurityConf `yaml:"transmitSecurity"`

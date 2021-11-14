@@ -31,6 +31,7 @@ type MgoDBModel interface {
 	RemoveAll(d dao.DocInter, q primitive.M, u dao.LogUser) (int64, error)
 	RemoveByID(d dao.DocInter, u dao.LogUser) (int64, error)
 	UpdateOne(d dao.DocInter, fields bson.D, u dao.LogUser) (int64, error)
+	UpdateAll(d dao.DocInter, fields bson.D, u dao.LogUser) (int64, error)
 	Upsert(d dao.DocInter, u dao.LogUser) (interface{}, error)
 	FindByID(d dao.DocInter) error
 	FindOne(d dao.DocInter, q bson.M, option ...*options.FindOneOptions) error
@@ -250,6 +251,22 @@ func (mm *mgoModelImpl) UpdateOne(d dao.DocInter, fields bson.D, u dao.LogUser) 
 	}
 	collection := mm.db.Collection(d.GetC())
 	result, err := collection.UpdateOne(mm.ctx, bson.M{"_id": d.GetID()},
+		bson.D{
+			{Key: "$set", Value: fields},
+		},
+	)
+	if result != nil {
+		return result.ModifiedCount, err
+	}
+	return 0, err
+}
+
+func (mm *mgoModelImpl) UpdateAll(d dao.DocInter, fields bson.D, u dao.LogUser) (int64, error) {
+	if u != nil {
+		fields = append(fields, primitive.E{Key: "records", Value: d.AddRecord(u, "updated")})
+	}
+	collection := mm.db.Collection(d.GetC())
+	result, err := collection.UpdateMany(mm.ctx, bson.M{"_id": d.GetID()},
 		bson.D{
 			{Key: "$set", Value: fields},
 		},

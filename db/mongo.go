@@ -43,7 +43,7 @@ type MongoConf struct {
 	connPool map[string]*mongo.Client
 }
 
-func (mc MongoConf) NewMongoDBClient(ctx context.Context, userDB string) (MongoDBClient, error) {
+func (mc *MongoConf) NewMongoDBClient(ctx context.Context, userDB string) (MongoDBClient, error) {
 	if mc.Uri == "" {
 		panic("mongo uri not set")
 	}
