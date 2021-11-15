@@ -32,6 +32,7 @@ type MgoDBModel interface {
 	RemoveByID(d dao.DocInter, u dao.LogUser) (int64, error)
 	UpdateOne(d dao.DocInter, fields bson.D, u dao.LogUser) (int64, error)
 	UpdateAll(d dao.DocInter, q bson.M, fields bson.D, u dao.LogUser) (int64, error)
+	UnsetFields(d dao.DocInter, q bson.M, fields []string, u dao.LogUser) (int64, error)
 	Upsert(d dao.DocInter, u dao.LogUser) (interface{}, error)
 	FindByID(d dao.DocInter) error
 	FindOne(d dao.DocInter, q bson.M, option ...*options.FindOneOptions) error
@@ -269,6 +270,23 @@ func (mm *mgoModelImpl) UpdateAll(d dao.DocInter, q bson.M, fields bson.D, u dao
 	result, err := collection.UpdateMany(mm.ctx, q,
 		bson.D{
 			{Key: "$set", Value: fields},
+		},
+	)
+	if result != nil {
+		return result.ModifiedCount, err
+	}
+	return 0, err
+}
+
+func (mm *mgoModelImpl) UnsetFields(d dao.DocInter, q bson.M, fields []string, u dao.LogUser) (int64, error) {
+	collection := mm.db.Collection(d.GetC())
+	m := primitive.M{}
+	for _, k := range fields {
+		m[k] = ""
+	}
+	result, err := collection.UpdateMany(mm.ctx, q,
+		bson.D{
+			{Key: "$unset", Value: m},
 		},
 	)
 	if result != nil {
