@@ -137,8 +137,10 @@ func (mm *mgoModelImpl) FindAndExec(
 	if err != nil {
 		return nil
 	}
+	docType := reflect.TypeOf(d).Elem()
 	for sortCursor.Next(mm.ctx) {
-		err = sortCursor.Decode(d)
+		docPtr := reflect.New(docType)
+		err = sortCursor.Decode(docPtr)
 		if err != nil {
 			return err
 		}
