@@ -137,17 +137,27 @@ func (mm *mgoModelImpl) FindAndExec(
 	if err != nil {
 		return nil
 	}
-	docType := reflect.TypeOf(d).Elem()
+	val := reflect.ValueOf(d)
+	if val.Kind() == reflect.Ptr {
+		val = reflect.Indirect(val)
+	}
+	var newValue reflect.Value
+	var newDoc dao.DocInter
 	for sortCursor.Next(mm.ctx) {
-		docPtr := reflect.New(docType)
-		err = sortCursor.Decode(docPtr)
+		newValue = reflect.New(val.Type())
+		newDoc = newValue.Interface().(dao.DocInter)
+		err = sortCursor.Decode(newDoc)
 		if err != nil {
 			return err
 		}
-		err = exec(d)
+		err = exec(newDoc)
 		if err != nil {
 			return err
 		}
+	}
+	for i := 0; i < val.NumField(); i++ {
+		f := val.Field(i)
+		f.Set(newValue.Elem().Field(i))
 	}
 	return err
 }
@@ -363,15 +373,27 @@ func (mm *mgoModelImpl) PipeFindAndExec(aggr MgoAggregate, filter bson.M, exec f
 	if err != nil {
 		return err
 	}
+	val := reflect.ValueOf(aggr)
+	if val.Kind() == reflect.Ptr {
+		val = reflect.Indirect(val)
+	}
+	var newValue reflect.Value
+	var newDoc dao.DocInter
 	for sortCursor.Next(mm.ctx) {
-		err = sortCursor.Decode(aggr)
+		newValue = reflect.New(val.Type())
+		newDoc = newValue.Interface().(dao.DocInter)
+		err = sortCursor.Decode(newDoc)
 		if err != nil {
 			return err
 		}
-		err = exec(aggr)
+		err = exec(newDoc)
 		if err != nil {
 			return err
 		}
+	}
+	for i := 0; i < val.NumField(); i++ {
+		f := val.Field(i)
+		f.Set(newValue.Elem().Field(i))
 	}
 	return err
 }
