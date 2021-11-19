@@ -371,6 +371,9 @@ func (mm *mgoModelImpl) PipeFind(aggr MgoAggregate, filter bson.M, opts ...*opti
 }
 
 func (mm *mgoModelImpl) PipeFindAndExec(aggr MgoAggregate, filter bson.M, exec func(i interface{}) error, opts ...*options.AggregateOptions) error {
+	if aggr == nil {
+		return errors.New("aggr is nil")
+	}
 	collection := mm.db.Collection(aggr.GetC())
 	sortCursor, err := collection.Aggregate(mm.ctx, aggr.GetPipeline(filter), opts...)
 	if err != nil {
@@ -380,7 +383,6 @@ func (mm *mgoModelImpl) PipeFindAndExec(aggr MgoAggregate, filter bson.M, exec f
 	if val.Kind() == reflect.Ptr {
 		val = reflect.Indirect(val)
 	}
-	fmt.Println(aggr, val)
 	var newValue reflect.Value
 	var newDoc dao.DocInter
 	for sortCursor.Next(mm.ctx) {
@@ -396,7 +398,6 @@ func (mm *mgoModelImpl) PipeFindAndExec(aggr MgoAggregate, filter bson.M, exec f
 			return err
 		}
 	}
-	fmt.Println("newValue: ", newValue)
 	for i := 0; i < val.NumField(); i++ {
 		f := val.Field(i)
 		if newValue.IsNil() || !newValue.IsValid() || newValue.IsZero() {
