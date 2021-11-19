@@ -383,6 +383,7 @@ func (mm *mgoModelImpl) PipeFindAndExec(aggr MgoAggregate, filter bson.M, exec f
 	if val.Kind() == reflect.Ptr {
 		val = reflect.Indirect(val)
 	}
+	fmt.Println(aggr, val)
 	var newValue reflect.Value
 	var newDoc dao.DocInter
 	for sortCursor.Next(mm.ctx) {
