@@ -397,9 +397,9 @@ func (mm *mgoModelImpl) PipeFindAndExec(aggr MgoAggregate, filter bson.M, exec f
 	}
 
 	w := reflect.ValueOf(&newValue)
-	fmt.Println("newdoc", w, w.IsValid())
+	fmt.Println("newdoc", w, w.IsValid(), w.IsZero())
 	w2 := reflect.ValueOf(newValue)
-	fmt.Println("newdoc", w2, w2.IsValid())
+	fmt.Println("newdoc2", w2, w2.IsValid(), w2.IsZero())
 	for i := 0; i < val.NumField(); i++ {
 		f := val.Field(i)
 		f.Set(newValue.Elem().Field(i))
