@@ -157,6 +157,9 @@ func (mm *mgoModelImpl) FindAndExec(
 	}
 	for i := 0; i < val.NumField(); i++ {
 		f := val.Field(i)
+		if newValue.IsZero() {
+			continue
+		}
 		f.Set(newValue.Elem().Field(i))
 	}
 	return err
@@ -393,6 +396,9 @@ func (mm *mgoModelImpl) PipeFindAndExec(aggr MgoAggregate, filter bson.M, exec f
 	}
 	for i := 0; i < val.NumField(); i++ {
 		f := val.Field(i)
+		if newValue.IsZero() {
+			continue
+		}
 		f.Set(newValue.Elem().Field(i))
 	}
 	return err
