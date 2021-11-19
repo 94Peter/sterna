@@ -387,3 +387,7 @@ func IsLegalPhoneNumber(num string) (bool, error) {
 	}
 	return true, nil
 }
+
+func IsMAC(mac string) bool {
+	return govalidator.IsMAC(mac)
+}
