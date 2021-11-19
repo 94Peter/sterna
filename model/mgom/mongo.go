@@ -155,11 +155,12 @@ func (mm *mgoModelImpl) FindAndExec(
 			return err
 		}
 	}
+	w2 := reflect.ValueOf(newValue)
+	if w2.IsZero() {
+		return nil
+	}
 	for i := 0; i < val.NumField(); i++ {
 		f := val.Field(i)
-		if newValue.IsZero() {
-			continue
-		}
 		f.Set(newValue.Elem().Field(i))
 	}
 	return err
@@ -380,7 +381,6 @@ func (mm *mgoModelImpl) PipeFindAndExec(aggr MgoAggregate, filter bson.M, exec f
 	if val.Kind() == reflect.Ptr {
 		val = reflect.Indirect(val)
 	}
-	fmt.Println("aggr ", val, val.IsValid())
 	var newValue reflect.Value
 	var newDoc dao.DocInter
 	for sortCursor.Next(mm.ctx) {
