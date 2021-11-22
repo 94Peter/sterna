@@ -3,7 +3,6 @@ package sterna
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 
 	"github.com/94peter/sterna/util"
 
@@ -58,10 +57,6 @@ func InitDefaultConf(path string, di interface{}) {
 // 	*export.MyExportConf       `yaml:"export"`
 // 	location                   *time.Location
 // }
-
-func GetENV() string {
-	return os.Getenv("env")
-}
 
 // func SystemPwd() string {
 // 	md5pwd := os.Getenv("ENCR_WORD")
