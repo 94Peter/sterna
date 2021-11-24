@@ -63,6 +63,7 @@ type RedisClient interface {
 	LPush(k string, v interface{}) (int64, error)
 	RPop(k string) ([]byte, error)
 	HMGet(key string, field ...string) []interface{}
+	HMSet(key string, values ...interface{}) error
 	Exists(key string) bool
 }
 
@@ -101,4 +102,8 @@ func (rci *redisV8CltImpl) Exists(key string) bool {
 
 func (rci *redisV8CltImpl) HMGet(key string, field ...string) []interface{} {
 	return rci.clt.HMGet(rci.ctx, key, field...).Val()
+}
+
+func (rci *redisV8CltImpl) HMSet(key string, values ...interface{}) error {
+	return rci.clt.HMSet(rci.ctx, key, values...).Err()
 }
