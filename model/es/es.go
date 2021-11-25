@@ -14,6 +14,11 @@ import (
 	elastic "github.com/olivere/elastic/v7"
 )
 
+type EsSearch interface {
+	BulkByDate(sd dao.SearchDaoList, d time.Time) error
+	PutByDate(sd dao.ESDao, t time.Time) error
+}
+
 type searchModel struct {
 	ctx      context.Context
 	esDI     db.EsDI
@@ -24,7 +29,7 @@ type searchModel struct {
 	*sync.Mutex
 }
 
-func NewSearchModel(ctx context.Context, c db.EsDI, l log.Logger) *searchModel {
+func NewSearchModel(ctx context.Context, c db.EsDI, l log.Logger) EsSearch {
 	return &searchModel{
 		ctx:    ctx,
 		esDI:   c,
