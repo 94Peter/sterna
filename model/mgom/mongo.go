@@ -50,9 +50,9 @@ type MgoDBModel interface {
 		opts ...*options.AggregateOptions,
 	) error
 	PagePipeFind(aggr MgoAggregate, filter bson.M, limit, page int64) (interface{}, error)
-	PageFind(d dao.DocInter, q bson.M, limit, page int64) (interface{}, error)
+	PageFind(d dao.DocInter, q bson.M, limit, page int64, opts ...*options.FindOptions) (interface{}, error)
 	CountDocuments(d dao.DocInter, q bson.M) (int64, error)
-	GetPaginationSource(d dao.DocInter, q bson.M) util.PaginationSource
+	GetPaginationSource(d dao.DocInter, q bson.M, opts ...*options.FindOptions) util.PaginationSource
 	CreateCollection(dlist ...dao.DocInter) error
 
 	//Reference to customer code, use for aggregate pagination
@@ -422,7 +422,7 @@ func (mm *mgoModelImpl) PipeFindOne(aggr MgoAggregate, filter bson.M) error {
 	return nil
 }
 
-func (mm *mgoModelImpl) PageFind(d dao.DocInter, filter bson.M, limit, page int64) (interface{}, error) {
+func (mm *mgoModelImpl) PageFind(d dao.DocInter, filter bson.M, limit, page int64, opts ...*options.FindOptions) (interface{}, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -431,10 +431,11 @@ func (mm *mgoModelImpl) PageFind(d dao.DocInter, filter bson.M, limit, page int6
 	}
 	skip := limit * (page - 1)
 	findopt := options.Find().SetSkip(skip).SetLimit(limit)
+	opts = append(opts, findopt)
 	myType := reflect.TypeOf(d)
 	slice := reflect.MakeSlice(reflect.SliceOf(myType), 0, 0).Interface()
 	collection := mm.db.Collection(d.GetC())
-	sortCursor, err := collection.Find(mm.ctx, filter, findopt)
+	sortCursor, err := collection.Find(mm.ctx, filter, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -467,18 +468,20 @@ func (mm *mgoModelImpl) PagePipeFind(aggr MgoAggregate, filter bson.M, limit, pa
 	return slice, err
 }
 
-func (mm *mgoModelImpl) GetPaginationSource(d dao.DocInter, q bson.M) util.PaginationSource {
+func (mm *mgoModelImpl) GetPaginationSource(d dao.DocInter, q bson.M, opts ...*options.FindOptions) util.PaginationSource {
 	return &mongoPaginationImpl{
 		MgoDBModel: mm,
 		d:          d,
 		q:          q,
+		findOpts:   opts,
 	}
 }
 
 type mongoPaginationImpl struct {
 	MgoDBModel
-	d dao.DocInter
-	q bson.M
+	d        dao.DocInter
+	q        bson.M
+	findOpts []*options.FindOptions
 }
 
 func (mpi *mongoPaginationImpl) Count() (int64, error) {
@@ -486,7 +489,7 @@ func (mpi *mongoPaginationImpl) Count() (int64, error) {
 }
 
 func (mpi *mongoPaginationImpl) Data(limit, p int64, format func(i interface{}) map[string]interface{}) ([]map[string]interface{}, error) {
-	result, err := mpi.PageFind(mpi.d, mpi.q, limit, p)
+	result, err := mpi.PageFind(mpi.d, mpi.q, limit, p, mpi.findOpts...)
 	if err != nil {
 		return nil, err
 	}
