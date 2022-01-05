@@ -193,6 +193,7 @@ func (mm *mgoModelImpl) CreateCollection(dlist ...dao.DocInter) (err error) {
 				mm.log.Info(fmt.Sprintln("created index: ", indexStr))
 			} else {
 				err = mm.db.CreateCollection(mm.selfCtx, d.GetC())
+				time.Sleep(time.Second)
 			}
 			if err != nil {
 				mm.log.Warn(fmt.Sprintf("created collection [%s] fail: %s", d.GetC(), err.Error()))
