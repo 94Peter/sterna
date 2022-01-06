@@ -283,7 +283,7 @@ func (mm *mgoModelImpl) UpdateAll(d dao.DocInter, q bson.M, fields bson.D, u dao
 		{Key: "$set", Value: fields},
 	}
 	if u != nil {
-		updated = append(updated, primitive.E{Key: "$push", Value: primitive.E{Key: "records", Value: dao.NewRecord(time.Now(), u.GetAccount(), u.GetName(), "updated")}})
+		updated = append(updated, primitive.E{Key: "$push", Value: primitive.M{"records": dao.NewRecord(time.Now(), u.GetAccount(), u.GetName(), "updated")}})
 	}
 	collection := mm.db.Collection(d.GetC())
 	result, err := collection.UpdateMany(mm.ctx, q, updated)
