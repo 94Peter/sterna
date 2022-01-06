@@ -193,7 +193,6 @@ func (mm *mgoModelImpl) CreateCollection(dlist ...dao.DocInter) (err error) {
 				mm.log.Info(fmt.Sprintln("created index: ", indexStr))
 			} else {
 				err = mm.db.CreateCollection(mm.selfCtx, d.GetC())
-				time.Sleep(time.Second)
 			}
 			if err != nil {
 				mm.log.Warn(fmt.Sprintf("created collection [%s] fail: %s", d.GetC(), err.Error()))
@@ -280,15 +279,14 @@ func (mm *mgoModelImpl) UpdateOne(d dao.DocInter, fields bson.D, u dao.LogUser) 
 }
 
 func (mm *mgoModelImpl) UpdateAll(d dao.DocInter, q bson.M, fields bson.D, u dao.LogUser) (int64, error) {
+	updated := bson.D{
+		{Key: "$set", Value: fields},
+	}
 	if u != nil {
-		fields = append(fields, primitive.E{Key: "records", Value: d.AddRecord(u, "updated")})
+		updated = append(updated, primitive.E{Key: "$push", Value: primitive.E{Key: "records", Value: dao.NewRecord(time.Now(), u.GetAccount(), u.GetName(), "updated")}})
 	}
 	collection := mm.db.Collection(d.GetC())
-	result, err := collection.UpdateMany(mm.ctx, q,
-		bson.D{
-			{Key: "$set", Value: fields},
-		},
-	)
+	result, err := collection.UpdateMany(mm.ctx, q, updated)
 	if result != nil {
 		return result.ModifiedCount, err
 	}
