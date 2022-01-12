@@ -41,6 +41,7 @@ type PDF interface {
 	LineWithPosition(width float64, x1, y1, x2, y2 float64)
 	RectFillDrawColor(text string, style TextBlockStyle, w, h float64, align, valign int)
 	ImageReader(imageByte io.Reader, x, y, w, h, alpha float64) error
+	MeasureTextWidth(txt string) (float64, error)
 }
 
 type pdfImpl struct {
@@ -340,6 +341,7 @@ func (p *pdfImpl) rectColorText(text string,
 	align, valign int,
 	rectType string,
 ) {
+	p.SetLineType("solid")
 	p.SetLineWidth(0.1)
 	p.SetFont(font, style, fontSize)
 	p.SetFillColor(color.R, color.G, color.B) //setup fill color
@@ -364,13 +366,14 @@ func (p *pdfImpl) rectColorText(text string,
 		x = x + (w / 2) - (textw / 2)
 	} else if align == AlignRight {
 		textw, _ := p.MeasureTextWidth(text)
-		x = x + w - textw
+		x = x + w - textw - 5
 	} else {
 		x = x + 5
 	}
 
 	p.SetX(x)
 	oy, y := p.GetY(), 0.0
+
 	if valign == ValignMiddle {
 		y = oy + (h / 2) - (float64(fontSize) * float64(len(s)) / 2)
 	} else if valign == ValignBottom {

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/94peter/sterna/export/pdf"
+	"github.com/94peter/sterna/gcp"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,14 +18,33 @@ type Data struct {
 }
 
 func Test_genPdfRender(t *testing.T) {
-	data := &Data{
-		Name: "render",
-		Data: &Data{
-			Name: "subrender",
+	data := map[string]interface{}{
+		"Vatnumber":     "250778098",
+		"Establishment": "108年9月12日",
+		"Register":      "臺灣臺北地方法院登記處-登記簿第172冊第57頁第3639號",
+		"Approval":      "台內團字第1080060869號",
+		"Address":       "臺北市中山區撫順街35號3樓",
+		"Contact":       "(02)2599-1258  eafatku@gmail.com",
+		"Title":         "社團法人淡江大學卓越校友會",
+		"No":            "NO.110-001",
+		"Name":          "陳彥睿",
+		"Data": []map[string]string{
+			{"no": "1", "item": "入會費", "amount": "1,000"},
+			{"no": "2", "item": "常年會費", "amount": "500"},
 		},
+		"Image": map[string]string{
+			"chairman": "img1.png",
+			"officer":  "img1.png",
+			"big":      "img2.png",
+		},
+		"PrintDate": "中華民國 110 年 12 月 1 日",
 	}
 	ctx := context.Background()
-	conf := NewPdfGenConf(ctx, data, nil)
+	storage := &gcp.GcpConf{
+		CredentialsFile: "kalimas-279302.json",
+		Bucket:          "tmp-kalimasi-storage",
+	}
+	conf := NewPdfGenConf(ctx, data, storage)
 	f, err := os.Open("test2.json")
 	assert.Nil(t, err)
 	err = json.NewDecoder(f).Decode(conf)

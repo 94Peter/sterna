@@ -81,7 +81,9 @@ func (f *pdfGenConf) UnmarshalJSON(b []byte) error {
 		case "line":
 			i = &LineElemnt{}
 		case "image":
-			i = &ImageElement{sto: f.sto, ctx: f.ctx}
+			i = &ImageElement{sto: f.sto, ctx: f.ctx, ds: f.RenderData}
+		case "table":
+			i = &TableElement{ds: f.RenderData}
 		default:
 			return errors.New("unknown element type: " + v.Type)
 		}
