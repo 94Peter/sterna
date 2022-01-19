@@ -3,7 +3,10 @@ package db
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/94peter/sterna/util"
@@ -47,6 +50,7 @@ func (rc *RedisConf) NewRedisClient(ctx context.Context) (RedisClient, error) {
 			// WriteTimeout: connTimeout,
 		}),
 		ctx: ctx,
+		db:  rc.DB,
 	}
 
 	if r.Ping() != "PONG" {
@@ -58,6 +62,7 @@ func (rc *RedisConf) NewRedisClient(ctx context.Context) (RedisClient, error) {
 type RedisClient interface {
 	Close() error
 	Ping() string
+	CountKeys() (int, error)
 	Set(k string, v interface{}, exp time.Duration) (string, error)
 	Del(k string) (int64, error)
 	LPush(k string, v interface{}) (int64, error)
@@ -70,6 +75,22 @@ type RedisClient interface {
 type redisV8CltImpl struct {
 	clt *redis.Client
 	ctx context.Context
+	db  int
+}
+
+func (rci *redisV8CltImpl) CountKeys() (int, error) {
+	r := rci.clt.Info(rci.ctx, "keyspace").String()
+	k := fmt.Sprintf("db%d:keys=", rci.db)
+	i := strings.Index(r, k)
+	l := len(r)
+	var count []byte
+	for i = i + len(k); i < l; i++ {
+		if r[i] == ',' {
+			break
+		}
+		count = append(count, r[i])
+	}
+	return strconv.Atoi(string(count))
 }
 
 func (rci *redisV8CltImpl) Close() error {
