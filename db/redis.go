@@ -70,12 +70,17 @@ type RedisClient interface {
 	HMGet(key string, field ...string) []interface{}
 	HMSet(key string, values ...interface{}) error
 	Exists(key string) bool
+	Expired(key string, d time.Duration) (bool, error)
 }
 
 type redisV8CltImpl struct {
 	clt *redis.Client
 	ctx context.Context
 	db  int
+}
+
+func (rci *redisV8CltImpl) Expired(key string, d time.Duration) (bool, error) {
+	return rci.clt.Expire(rci.ctx, key, d).Result()
 }
 
 func (rci *redisV8CltImpl) CountKeys() (int, error) {
