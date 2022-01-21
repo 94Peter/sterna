@@ -32,6 +32,7 @@ func GetCtxMgoDBClient(req *http.Request) MongoDBClient {
 
 type MongoDI interface {
 	NewMongoDBClient(ctx context.Context, userDB string) (MongoDBClient, error)
+	SetAuth(user, pwd string)
 }
 
 type MongoConf struct {
@@ -46,8 +47,8 @@ type MongoConf struct {
 }
 
 func (mc *MongoConf) SetAuth(user, pwd string) {
-	mc.authUri = strings.Replace(mc.Uri, "{Mongo_User}", user, 1)
-	mc.authUri = strings.Replace(mc.authUri, "{Mongo_Pwd}", pwd, 1)
+	mc.authUri = strings.Replace(mc.Uri, "{User}", user, 1)
+	mc.authUri = strings.Replace(mc.authUri, "{Pwd}", pwd, 1)
 }
 
 func (mc *MongoConf) NewMongoDBClient(ctx context.Context, userDB string) (MongoDBClient, error) {
