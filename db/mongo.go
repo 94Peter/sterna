@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -39,8 +40,14 @@ type MongoConf struct {
 	Pass      string `yaml:"pass"`
 	DefaultDB string `yaml:"defaul"`
 
+	authUri  string
 	lock     *sync.Mutex
 	connPool map[string]*mongo.Client
+}
+
+func (mc *MongoConf) SetAuth(user, pwd string) {
+	mc.authUri = strings.Replace(mc.Uri, "{Mongo_User}", user, 1)
+	mc.authUri = strings.Replace(mc.authUri, "{Mongo_Pwd}", pwd, 1)
 }
 
 func (mc *MongoConf) NewMongoDBClient(ctx context.Context, userDB string) (MongoDBClient, error) {
@@ -50,7 +57,11 @@ func (mc *MongoConf) NewMongoDBClient(ctx context.Context, userDB string) (Mongo
 	if mc.DefaultDB == "" {
 		panic("mongo default db not set")
 	}
-	client, err := mongo.NewClient(options.Client().ApplyURI(mc.Uri))
+	uri := mc.Uri
+	if mc.authUri != "" {
+		uri = mc.authUri
+	}
+	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
 	if err != nil {
 		return nil, err
 	}
