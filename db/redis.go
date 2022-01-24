@@ -63,6 +63,7 @@ type RedisClient interface {
 	Close() error
 	Ping() string
 	CountKeys() (int, error)
+	Get(k string) ([]byte, error)
 	Set(k string, v interface{}, exp time.Duration) (string, error)
 	Del(k string) (int64, error)
 	LPush(k string, v interface{}) (int64, error)
@@ -77,6 +78,10 @@ type redisV8CltImpl struct {
 	clt *redis.Client
 	ctx context.Context
 	db  int
+}
+
+func (rci *redisV8CltImpl) Get(key string) ([]byte, error) {
+	return rci.clt.Get(rci.ctx, key).Bytes()
 }
 
 func (rci *redisV8CltImpl) Expired(key string, d time.Duration) (bool, error) {
