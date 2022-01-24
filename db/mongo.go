@@ -33,6 +33,7 @@ func GetCtxMgoDBClient(req *http.Request) MongoDBClient {
 type MongoDI interface {
 	NewMongoDBClient(ctx context.Context, userDB string) (MongoDBClient, error)
 	SetAuth(user, pwd string)
+	GetUri() string
 }
 
 type MongoConf struct {
@@ -51,6 +52,13 @@ func (mc *MongoConf) SetAuth(user, pwd string) {
 	mc.authUri = strings.Replace(mc.authUri, "{Pwd}", pwd, 1)
 }
 
+func (mc *MongoConf) GetUri() string {
+	if mc.authUri != "" {
+		return mc.authUri
+	}
+	return mc.Uri
+}
+
 func (mc *MongoConf) NewMongoDBClient(ctx context.Context, userDB string) (MongoDBClient, error) {
 	if mc.Uri == "" {
 		panic("mongo uri not set")
@@ -58,11 +66,8 @@ func (mc *MongoConf) NewMongoDBClient(ctx context.Context, userDB string) (Mongo
 	if mc.DefaultDB == "" {
 		panic("mongo default db not set")
 	}
-	uri := mc.Uri
-	if mc.authUri != "" {
-		uri = mc.authUri
-	}
-	client, err := mongo.NewClient(options.Client().ApplyURI(uri))
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(mc.GetUri()))
 	if err != nil {
 		return nil, err
 	}
