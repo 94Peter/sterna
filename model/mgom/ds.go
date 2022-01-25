@@ -37,6 +37,7 @@ func (mm *findDsImpl) Exec(exec func(i interface{}) error) error {
 func (mm *findDsImpl) ExportCSV(w io.Writer, title []string, exec func(writer *csv.Writer, i interface{}) error) error {
 	csvWriter := csv.NewWriter(w)
 	err := csvWriter.Write(title)
+	defer csvWriter.Flush()
 	if err != nil {
 		return err
 	}
@@ -68,10 +69,12 @@ func (mm *pipeFindDsImpl) Exec(exec func(i interface{}) error) error {
 func (mm *pipeFindDsImpl) ExportCSV(w io.Writer, title []string, exec func(writer *csv.Writer, i interface{}) error) error {
 	csvWriter := csv.NewWriter(w)
 	err := csvWriter.Write(title)
+	defer csvWriter.Flush()
 	if err != nil {
 		return err
 	}
 	return mm.PipeFindAndExec(mm.d, mm.q, func(i interface{}) error {
-		return exec(csvWriter, i)
+		err = exec(csvWriter, i)
+		return err
 	}, mm.opts...)
 }
