@@ -11,6 +11,7 @@ import (
 
 type MgoDS interface {
 	Exec(exec func(i interface{}) error) error
+	ExportCSV(w io.Writer, title []string, exec func(writer *csv.Writer, i interface{}) error) error
 }
 
 func (mm *mgoModelImpl) NewFindMgoDS(d dao.DocInter, q bson.M, opts ...*options.FindOptions) MgoDS {
