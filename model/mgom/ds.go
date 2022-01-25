@@ -1,6 +1,9 @@
 package mgom
 
 import (
+	"encoding/csv"
+	"io"
+
 	"github.com/94peter/sterna/dao"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -30,6 +33,17 @@ func (mm *findDsImpl) Exec(exec func(i interface{}) error) error {
 	return mm.FindAndExec(mm.d, mm.q, exec, mm.opts...)
 }
 
+func (mm *findDsImpl) ExportCSV(w io.Writer, title []string, exec func(writer *csv.Writer, i interface{}) error) error {
+	csvWriter := csv.NewWriter(w)
+	err := csvWriter.Write(title)
+	if err != nil {
+		return err
+	}
+	return mm.FindAndExec(mm.d, mm.q, func(i interface{}) error {
+		return exec(csvWriter, i)
+	}, mm.opts...)
+}
+
 func (mm *mgoModelImpl) NewPipeFindMgoDS(d MgoAggregate, q bson.M, opts ...*options.AggregateOptions) MgoDS {
 	return &pipeFindDsImpl{
 		MgoDBModel: mm,
@@ -48,4 +62,15 @@ type pipeFindDsImpl struct {
 
 func (mm *pipeFindDsImpl) Exec(exec func(i interface{}) error) error {
 	return mm.PipeFindAndExec(mm.d, mm.q, exec, mm.opts...)
+}
+
+func (mm *pipeFindDsImpl) ExportCSV(w io.Writer, title []string, exec func(writer *csv.Writer, i interface{}) error) error {
+	csvWriter := csv.NewWriter(w)
+	err := csvWriter.Write(title)
+	if err != nil {
+		return err
+	}
+	return mm.PipeFindAndExec(mm.d, mm.q, func(i interface{}) error {
+		return exec(csvWriter, i)
+	}, mm.opts...)
 }
