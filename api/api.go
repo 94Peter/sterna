@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -12,24 +13,39 @@ import (
 
 type ApiError interface {
 	GetStatus() int
+	GetErrorKey() string
+	GetErrorMsg() string
 	error
 }
 
 type myApiError struct {
-	StatusCode int
-	Message    string
+	statusCode int
+	message    string
+	key        string
 }
 
 func (e myApiError) GetStatus() int {
-	return e.StatusCode
+	return e.statusCode
+}
+
+func (e myApiError) GetErrorKey() string {
+	return e.key
+}
+
+func (e myApiError) GetErrorMsg() string {
+	return e.message
 }
 
 func (e myApiError) Error() string {
-	return fmt.Sprintf("%v: %v", e.StatusCode, e.Message)
+	return fmt.Sprintf("%v: %v", e.statusCode, e.message)
 }
 
 func NewApiError(status int, msg string) ApiError {
-	return myApiError{StatusCode: status, Message: msg}
+	return myApiError{statusCode: status, message: msg}
+}
+
+func NewApiErrorWithKey(status int, msg string, key string) ApiError {
+	return myApiError{statusCode: status, message: msg, key: key}
 }
 
 func OutputErr(w http.ResponseWriter, err error) {
@@ -38,12 +54,27 @@ func OutputErr(w http.ResponseWriter, err error) {
 	}
 	if apiErr, ok := err.(ApiError); ok {
 		w.WriteHeader(apiErr.GetStatus())
-		w.Write([]byte(apiErr.Error()))
-		return
+		OutputJson(w, map[string]interface{}{
+			"status":   apiErr.GetStatus(),
+			"title":    apiErr.GetErrorMsg(),
+			"errorKey": apiErr.GetErrorKey(),
+		})
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		return
+		OutputJson(w, map[string]interface{}{
+			"status":   apiErr.GetStatus(),
+			"title":    apiErr.GetErrorMsg(),
+			"errorKey": "",
+		})
+	}
+	return
+}
+
+func OutputJson(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(data)
+	if err != nil {
+		OutputErr(w, err)
 	}
 }
 
