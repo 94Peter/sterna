@@ -20,6 +20,7 @@ const (
 )
 
 type Parser interface {
+	Header() []string
 	Next() bool
 	Row() Row
 	Err() error
@@ -89,6 +90,10 @@ type basicParser struct {
 	encode Encode
 	file   *os.File
 	*bufio.Scanner
+}
+
+func (r *basicParser) Header() []string {
+	return r.header
 }
 
 func (r *basicParser) Row() Row {
