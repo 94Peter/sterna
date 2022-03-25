@@ -1,0 +1,7 @@
+model,mac_address,description
+scada,00:00:00:00:00:aa,
+scada,00:00:00:00:00:ab,
+miniGW,00:00:00:00:00:00,mini-tiny
+IoT627,00:00:00:00:00:33,
+IoT627,00:00:00:00:00:34,special colour
+IoT627,00:00:00:00:00:35,
