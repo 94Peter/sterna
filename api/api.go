@@ -53,25 +53,26 @@ func OutputErr(w http.ResponseWriter, err error) {
 		return
 	}
 	if apiErr, ok := err.(ApiError); ok {
-		w.WriteHeader(apiErr.GetStatus())
-		OutputJson(w, map[string]interface{}{
-			"status":   apiErr.GetStatus(),
-			"title":    apiErr.GetErrorMsg(),
-			"errorKey": apiErr.GetErrorKey(),
-		})
+		OutputJson(w, apiErr.GetStatus(),
+			map[string]interface{}{
+				"status":   apiErr.GetStatus(),
+				"title":    apiErr.GetErrorMsg(),
+				"errorKey": apiErr.GetErrorKey(),
+			})
 	} else {
-		w.WriteHeader(http.StatusInternalServerError)
-		OutputJson(w, map[string]interface{}{
-			"status":   apiErr.GetStatus(),
-			"title":    apiErr.GetErrorMsg(),
-			"errorKey": "",
-		})
+		OutputJson(w, http.StatusInternalServerError,
+			map[string]interface{}{
+				"status":   http.StatusInternalServerError,
+				"title":    err.Error(),
+				"errorKey": "",
+			})
 	}
 	return
 }
 
-func OutputJson(w http.ResponseWriter, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+func OutputJson(w http.ResponseWriter, statusCode int, data interface{}) {
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
 	err := json.NewEncoder(w).Encode(data)
 	if err != nil {
 		OutputErr(w, err)
