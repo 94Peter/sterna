@@ -14,6 +14,9 @@ import (
 type TokenParserResult interface {
 	Host() string
 	Perms() []string
+	Account() string
+	Name() string
+	Sub() string
 }
 
 type AuthTokenParser interface {
@@ -116,7 +119,13 @@ func (am *bearAuthMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerF
 					w.Write([]byte("permission error"))
 					return
 				}
-				r = util.SetCtxKeyVal(r, auth.CtxUserInfoKey, result)
+				r = util.SetCtxKeyVal(r, auth.CtxUserInfoKey, auth.NewReqUser(
+					result.Host(),
+					result.Sub(),
+					result.Account(),
+					result.Name(),
+					result.Perms(),
+				))
 			}
 			f(w, r)
 		}

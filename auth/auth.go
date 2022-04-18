@@ -41,7 +41,7 @@ type ReqUser interface {
 	dao.LogUser
 	Host() string
 	GetId() string
-	GetPerm() string
+	GetPerm() []string
 	GetDB() string
 }
 
@@ -50,7 +50,7 @@ type reqUserImpl struct {
 	id   string
 	acc  string
 	name string
-	perm string
+	perm []string
 }
 
 func (ru *reqUserImpl) Host() string {
@@ -74,11 +74,11 @@ func (ru reqUserImpl) GetAccount() string {
 	return ru.acc
 }
 
-func (ru reqUserImpl) GetPerm() string {
+func (ru reqUserImpl) GetPerm() []string {
 	return ru.perm
 }
 
-func NewReqUser(host, uid, acc, name, perm string) ReqUser {
+func NewReqUser(host, uid, acc, name string, perm []string) ReqUser {
 	return &reqUserImpl{
 		host: host,
 		acc:  acc,
@@ -101,7 +101,7 @@ type accessGuestImpl struct {
 	dB       string
 	account  string
 	name     string
-	perm     string
+	perm     []string
 }
 
 func (ru *accessGuestImpl) Host() string {
@@ -132,11 +132,11 @@ func (ru *accessGuestImpl) GetSourceID() string {
 	return ru.sourceID
 }
 
-func (ru *accessGuestImpl) GetPerm() string {
+func (ru *accessGuestImpl) GetPerm() []string {
 	return ru.perm
 }
 
-func NewAccessGuest(host, source, sid, acc, name, db, perm string) AccessGuest {
+func NewAccessGuest(host, source, sid, acc, name, db string, perm []string) AccessGuest {
 	return &accessGuestImpl{
 		host:     host,
 		source:   source,
@@ -172,7 +172,7 @@ func (c compUserImpl) GetComp() string {
 	return c.Comp
 }
 
-func NewCompUser(host, uid, acc, name, compID, comp, perm string) CompanyUser {
+func NewCompUser(host, uid, acc, name, compID, comp string, perm []string) CompanyUser {
 	return compUserImpl{
 		reqUserImpl: &reqUserImpl{
 			host: host,
@@ -219,8 +219,8 @@ func (ru *guestUser) GetAccount() string {
 	return ru.ip
 }
 
-func (ru *guestUser) GetPerm() string {
-	return string(PermGuest)
+func (ru *guestUser) GetPerm() []string {
+	return []string{string(PermGuest)}
 }
 
 func GetUserInfo(req *http.Request) ReqUser {

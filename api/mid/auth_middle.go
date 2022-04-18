@@ -137,7 +137,7 @@ func (am *authMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc 
 						mapClaims["sub"].(string),
 						mapClaims["acc"].(string),
 						mapClaims["nam"].(string),
-						permission,
+						[]string{permission},
 					)
 					r = util.SetCtxKeyVal(r, auth.CtxUserInfoKey, reqUser)
 				} else if usage == "access" {
@@ -155,7 +155,7 @@ func (am *authMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc 
 						r.RemoteAddr,
 						"guest",
 						mapClaims["db"].(string),
-						permission,
+						[]string{permission},
 					)
 					r = util.SetCtxKeyVal(r, auth.CtxUserInfoKey, reqUser)
 				} else if usage == "comp" {
@@ -166,7 +166,7 @@ func (am *authMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc 
 						mapClaims["nam"].(string),
 						mapClaims["compID"].(string),
 						mapClaims["comp"].(string),
-						permission,
+						[]string{permission},
 					)
 					r = util.SetCtxKeyVal(r, auth.CtxUserInfoKey, reqUser)
 				}
