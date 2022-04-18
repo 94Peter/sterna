@@ -87,7 +87,7 @@ func (am *bearAuthMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerF
 				return
 			}
 			if am.IsAuth(path, r.Method) {
-				authToken := r.Header.Get(AuthTokenKey)
+				authToken := r.Header.Get(BearerAuthTokenKey)
 				if authToken == "" {
 					w.WriteHeader(http.StatusUnauthorized)
 					w.Write([]byte("miss token"))
