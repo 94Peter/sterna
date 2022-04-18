@@ -17,12 +17,12 @@ type Totp interface {
 	ShowInfo() error
 }
 
-func NewTotp(host, account, secret string) Totp {
+func NewTotp(host, account, secret string, PeriodSecs uint) Totp {
 	return &totpConf{
 		Host:    host,
 		Account: account,
 		Secret:  secret,
-		Period:  120,
+		Period:  PeriodSecs,
 	}
 }
 
