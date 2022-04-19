@@ -14,6 +14,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.4
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
+	github.com/mitchellh/mapstructure v1.4.3
 	github.com/olivere/elastic/v7 v7.0.29
 	github.com/pquerna/otp v1.3.0
 	github.com/sendgrid/rest v2.6.4+incompatible // indirect

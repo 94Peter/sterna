@@ -2,6 +2,8 @@ package util
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -9,6 +11,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/mitchellh/mapstructure"
 )
 
 func GetClientKey(req *http.Request) string {
@@ -47,6 +50,30 @@ func DecodeToken(token string) map[string]interface{} {
 		return nil
 	}
 	return *mapSerialize
+}
+
+func ParserDataRequest(req *http.Request, data interface{}) error {
+	kindOfJ := reflect.ValueOf(data).Kind()
+	if kindOfJ != reflect.Ptr {
+		return errors.New("data is not pointer")
+	}
+	switch req.Header.Get("Content-Type") {
+	case "application/json":
+		err := json.NewDecoder(req.Body).Decode(data)
+		if err != nil {
+			return err
+		}
+	case "application/x-www-form-urlencoded":
+		vars, err := GetPostValue(req, true, []string{"pwd"})
+		if err != nil {
+			return err
+		}
+		err = mapstructure.Decode(vars, data)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func GetQueryValue(req *http.Request, keys []string, defaultEmpty bool) map[string]interface{} {
