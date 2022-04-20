@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/mitchellh/mapstructure"
@@ -64,11 +65,28 @@ func ParserDataRequest(req *http.Request, data interface{}) error {
 			return err
 		}
 	case "application/x-www-form-urlencoded":
-		vars, err := GetPostValue(req, true, []string{"pwd"})
+		rt := reflect.TypeOf(data)
+		keys := []string{}
+		for i := 0; i < rt.NumField(); i++ {
+			if key, ok := rt.Field(i).Tag.Lookup("json"); ok {
+				keys = append(keys, key)
+			} else {
+				keys = append(keys, strings.ToLower(rt.Field(i).Name))
+			}
+		}
+		vars, err := GetPostValue(req, true, keys)
 		if err != nil {
 			return err
 		}
-		err = mapstructure.Decode(vars, data)
+		decoderConf := &mapstructure.DecoderConfig{
+			TagName:  "json",
+			Metadata: nil,
+			Result:   data}
+		decoder, err := mapstructure.NewDecoder(decoderConf)
+		if err != nil {
+			return err
+		}
+		err = decoder.Decode(vars)
 		if err != nil {
 			return err
 		}
