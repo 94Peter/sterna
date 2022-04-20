@@ -65,7 +65,7 @@ func ParserDataRequest(req *http.Request, data interface{}) error {
 			return err
 		}
 	case "application/x-www-form-urlencoded":
-		rt := reflect.TypeOf(data)
+		rt := reflect.TypeOf(data).Elem()
 		keys := []string{}
 		for i := 0; i < rt.NumField(); i++ {
 			if key, ok := rt.Field(i).Tag.Lookup("json"); ok {
