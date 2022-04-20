@@ -74,7 +74,7 @@ func ParserDataRequest(req *http.Request, data interface{}) error {
 				keys = append(keys, strings.ToLower(rt.Field(i).Name))
 			}
 		}
-		vars, err := GetPostValue(req, true, keys)
+		vars, err := GetPostValue(req, false, keys)
 		if err != nil {
 			return err
 		}
