@@ -2,7 +2,9 @@ package sterna
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
 
 	"github.com/94peter/sterna/util"
 
@@ -33,77 +35,17 @@ func InitDefaultConf(path string, di interface{}) {
 	InitConfByFile(util.StrAppend(path, "/conf/config.yml"), di)
 }
 
-// type DI interface {
-// 	db.MongoDI
-// 	log.LoggerDI
-// 	api.ApiDI
-// 	auth.TransmitSecurity
-// 	auth.JwtDI
-// 	gcp.Storage
-// 	gcp.PubSubConf
-// 	mail.MailConf
-// 	export.ExportConf
-// 	LocationDI
-// }
-
-// type di struct {
-// 	*db.MongoConf              `yaml:"mongo,omitempty"`
-// 	*log.LoggerConf            `yaml:"log,omitempty"`
-// 	*api.APIConf               `yaml:"api,omitempty"`
-// 	*auth.TransmitSecurityConf `yaml:"transmitSecurity"`
-// 	*auth.JwtConf              `yaml:"jwtConf"`
-// 	*gcp.GcpConf               `yaml:"gcp"`
-// 	*mail.SendGridConf         `yaml:"mail"`
-// 	*export.MyExportConf       `yaml:"export"`
-// 	location                   *time.Location
-// }
-
-// func SystemPwd() string {
-// 	md5pwd := os.Getenv("ENCR_WORD")
-// 	return md5pwd
-// }
-
-// func (d *di) Close(key string) {
-
-// }
-
-// func (d *di) SetLocation(timezone string) {
-// 	loc, err := time.LoadLocation(timezone)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	d.location = loc
-// }
-
-// func (d *di) Location() *time.Location {
-// 	if d.location != nil {
-// 		return d.location
-// 	}
-// 	return time.Now().Location()
-// }
-
-// type modbusConf struct {
-// 	ReadDuration  string `yaml:"rd"`
-// 	WriteDuration string `yaml:"wd"`
-// }
-
-// func (mc modbusConf) GetReadDuration() time.Duration {
-// 	d, err := time.ParseDuration(mc.ReadDuration)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return d
-// }
-
-// func (mc modbusConf) GetWriteDuration() time.Duration {
-// 	d, err := time.ParseDuration(mc.WriteDuration)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	return d
-// }
-
-// type LocationDI interface {
-// 	SetLocation(loc string)
-// 	Location() *time.Location
-// }
+func InitConfByUri(uri string, di interface{}) error {
+	resp, err := http.Get(uri)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	err = yaml.Unmarshal(body, di)
+	if err != nil {
+		return err
+	}
+	util.InitValidator()
+	return nil
+}
