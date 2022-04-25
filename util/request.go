@@ -249,3 +249,11 @@ func ReturnExist(ori interface{}, new interface{}) interface{} {
 	}
 	return nil
 }
+
+func GetHost(req *http.Request) string {
+	host := req.Header.Get("X-Forwarded-Host")
+	if host == "" {
+		host = req.Host
+	}
+	return host
+}

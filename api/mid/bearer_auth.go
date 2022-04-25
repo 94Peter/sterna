@@ -20,7 +20,7 @@ type TokenParserResult interface {
 }
 
 type AuthTokenParser interface {
-	Parser(token string) (TokenParserResult, error)
+	Parser(jwt auth.JwtDI, token string) (TokenParserResult, error)
 }
 
 func NewBearerAuthMid(tokenParser AuthTokenParser) AuthMidInter {
@@ -36,7 +36,7 @@ func (lm *bearAuthMiddle) GetName() string {
 }
 
 type bearAuthMiddle struct {
-	parser   func(token string) (TokenParserResult, error)
+	parser   func(jwt auth.JwtDI, token string) (TokenParserResult, error)
 	log      log.Logger
 	authMap  map[string]uint8
 	groupMap map[string][]auth.UserPerm
@@ -101,14 +101,15 @@ func (am *bearAuthMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerF
 					w.Write([]byte("invalid token: missing Bearer"))
 					return
 				}
+				servDi := util.GetCtxVal(r, CtxServDiKey)
 				authToken = authToken[7:]
-				result, err := am.parser(authToken)
+				result, err := am.parser(servDi.(auth.JwtDI), authToken)
 				if err != nil {
 					w.WriteHeader(http.StatusUnauthorized)
 					w.Write([]byte("invalid token: " + err.Error()))
 					return
 				}
-				if result.Host() != r.Host {
+				if result.Host() != util.GetHost(r) {
 					w.WriteHeader(http.StatusUnauthorized)
 					w.Write([]byte(fmt.Sprintf("host not match: [%s] is not [%s]", result.Host(), r.Host)))
 					return
