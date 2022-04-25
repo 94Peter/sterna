@@ -103,6 +103,27 @@ type ApiDI interface {
 	EnableCORS() bool
 }
 
+func NewApiConf(port string, cors bool, ignoreMids []string, ignoreApis []string) *APIConf {
+	conf := &APIConf{
+		Port: port,
+		Cors: cors,
+	}
+	if len(ignoreMids) > 0 {
+		conf.Middle = make(map[string]bool)
+	}
+	for _, k := range ignoreMids {
+		conf.Middle[k] = false
+	}
+	if len(ignoreApis) > 0 {
+		conf.Apis = make(map[string]bool)
+	}
+	for _, k := range ignoreApis {
+		conf.Apis[k] = false
+	}
+
+	return conf
+}
+
 type APIConf struct {
 	Port   string          `yaml:"port,omitempty"`
 	Cors   bool            `yaml:"cors"`
