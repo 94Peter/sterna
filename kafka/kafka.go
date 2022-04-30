@@ -68,6 +68,7 @@ func (c *Config) NewReader(ctx context.Context, groupID, topic string, l log.Log
 			MinBytes: 10e3, // 10KB
 			MaxBytes: 10e6, // 10MB
 		}),
+		log: l,
 	}
 }
 
