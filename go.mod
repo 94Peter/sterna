@@ -17,6 +17,7 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3
 	github.com/olivere/elastic/v7 v7.0.29
 	github.com/pquerna/otp v1.3.0
+	github.com/segmentio/kafka-go v0.4.31 // indirect
 	github.com/sendgrid/rest v2.6.4+incompatible // indirect
 	github.com/sendgrid/sendgrid-go v3.10.0+incompatible
 	github.com/signintech/gopdf v0.9.21
