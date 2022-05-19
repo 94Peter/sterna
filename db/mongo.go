@@ -187,4 +187,5 @@ type MongoDBClient interface {
 	AbortTransaction(sc mongo.SessionContext) error
 	CommitTransaction(sc mongo.SessionContext) error
 	Close()
+	Ping() error
 }
