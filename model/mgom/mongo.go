@@ -25,6 +25,7 @@ type MgoAggregate interface {
 }
 
 type MgoDBModel interface {
+	DisableCheckBeforeSave(b bool)
 	SetDB(db *mongo.Database)
 	BatchSave(doclist []dao.DocInter, u dao.LogUser) (inserted []interface{}, failed []dao.DocInter, err error)
 	Save(d dao.DocInter, u dao.LogUser) (interface{}, error)
@@ -114,12 +115,17 @@ func GetObjectID(id interface{}) (primitive.ObjectID, error) {
 }
 
 type mgoModelImpl struct {
-	db  *mongo.Database
-	log log.Logger
-	ctx context.Context
+	disableCheckBeforeSave bool
+	db                     *mongo.Database
+	log                    log.Logger
+	ctx                    context.Context
 
 	selfCtx       context.Context
 	indexExistMap map[string]bool
+}
+
+func (mm *mgoModelImpl) DisableCheckBeforeSave(b bool) {
+	mm.disableCheckBeforeSave = b
 }
 
 func (mm *mgoModelImpl) SetDB(db *mongo.Database) {
@@ -233,10 +239,13 @@ func (mm *mgoModelImpl) BatchSave(doclist []dao.DocInter, u dao.LogUser) (insert
 }
 
 func (mm *mgoModelImpl) Save(d dao.DocInter, u dao.LogUser) (interface{}, error) {
-	err := mm.CreateCollection(d)
-	if err != nil {
-		return primitive.NilObjectID, err
+	if !mm.disableCheckBeforeSave {
+		err := mm.CreateCollection(d)
+		if err != nil {
+			return primitive.NilObjectID, err
+		}
 	}
+
 	if u != nil {
 		d.SetCreator(u)
 	}
