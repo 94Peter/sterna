@@ -27,6 +27,7 @@ type MgoAggregate interface {
 type MgoDBModel interface {
 	DisableCheckBeforeSave(b bool)
 	SetDB(db *mongo.Database)
+	BatchUpdate(doclist []dao.DocInter, getField func(d dao.DocInter) bson.D, u dao.LogUser) error
 	BatchSave(doclist []dao.DocInter, u dao.LogUser) (inserted []interface{}, failed []dao.DocInter, err error)
 	Save(d dao.DocInter, u dao.LogUser) (interface{}, error)
 	RemoveAll(d dao.DocInter, q primitive.M, u dao.LogUser) (int64, error)
@@ -208,6 +209,25 @@ func (mm *mgoModelImpl) CreateCollection(dlist ...dao.DocInter) (err error) {
 		}
 	}
 	return
+}
+
+func (mm *mgoModelImpl) BatchUpdate(doclist []dao.DocInter, getField func(d dao.DocInter) bson.D, u dao.LogUser) error {
+	if len(doclist) == 0 {
+		return nil
+	}
+	collection := mm.db.Collection(doclist[0].GetC())
+	var operations []mongo.WriteModel
+	for _, d := range doclist {
+		op := mongo.NewUpdateOneModel()
+		op.SetFilter(bson.M{"_id": d.GetID()})
+		op.SetUpdate(bson.D{
+			{Key: "$set", Value: getField(d)},
+		})
+		operations = append(operations, op)
+	}
+	bulkOption := options.BulkWriteOptions{}
+	_, err := collection.BulkWrite(context.TODO(), operations, &bulkOption)
+	return err
 }
 
 func (mm *mgoModelImpl) BatchSave(doclist []dao.DocInter, u dao.LogUser) (inserted []interface{}, failed []dao.DocInter, err error) {
