@@ -51,7 +51,7 @@ type MgoDBModel interface {
 		exec func(i interface{}) error,
 		opts ...*options.AggregateOptions,
 	) error
-	PagePipeFind(aggr MgoAggregate, filter bson.M, limit, page int64) (interface{}, error)
+	PagePipeFind(aggr MgoAggregate, filter bson.M, sort bson.M, limit, page int64) (interface{}, error)
 	PageFind(d dao.DocInter, q bson.M, limit, page int64, opts ...*options.FindOptions) (interface{}, error)
 	CountDocuments(d dao.DocInter, q bson.M) (int64, error)
 	GetPaginationSource(d dao.DocInter, q bson.M, opts ...*options.FindOptions) util.PaginationSource
@@ -59,7 +59,7 @@ type MgoDBModel interface {
 
 	//Reference to customer code, use for aggregate pagination
 	AggrCountDocuments(aggr MgoAggregate, q bson.M) (int64, error)
-	GetPipePaginationSource(aggr MgoAggregate, q bson.M) util.PaginationSource
+	GetPipePaginationSource(aggr MgoAggregate, q bson.M, sort bson.M) util.PaginationSource
 
 	NewFindMgoDS(d dao.DocInter, q bson.M, opts ...*options.FindOptions) MgoDS
 	NewPipeFindMgoDS(d MgoAggregate, q bson.M, opts ...*options.AggregateOptions) MgoDS
@@ -472,7 +472,7 @@ func (mm *mgoModelImpl) PageFind(d dao.DocInter, filter bson.M, limit, page int6
 	return slice, err
 }
 
-func (mm *mgoModelImpl) PagePipeFind(aggr MgoAggregate, filter bson.M, limit, page int64) (interface{}, error) {
+func (mm *mgoModelImpl) PagePipeFind(aggr MgoAggregate, filter bson.M, sort bson.M, limit, page int64) (interface{}, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -484,7 +484,7 @@ func (mm *mgoModelImpl) PagePipeFind(aggr MgoAggregate, filter bson.M, limit, pa
 	slice := reflect.MakeSlice(reflect.SliceOf(myType), 0, 0).Interface()
 
 	collection := mm.db.Collection(aggr.GetC())
-	pl := append(aggr.GetPipeline(filter), bson.D{{Key: "$skip", Value: skip}}, bson.D{{Key: "$limit", Value: limit}})
+	pl := append(aggr.GetPipeline(filter), bson.D{{Key: "$sort", Value: sort}}, bson.D{{Key: "$skip", Value: skip}}, bson.D{{Key: "$limit", Value: limit}})
 	sortCursor, err := collection.Aggregate(mm.ctx, pl)
 	if err != nil {
 		return nil, err
@@ -530,11 +530,12 @@ func (mpi *mongoPaginationImpl) Data(limit, p int64, format func(i interface{}) 
 
 // ----- New added code -----
 
-func (mm *mgoModelImpl) GetPipePaginationSource(aggr MgoAggregate, q bson.M) util.PaginationSource {
+func (mm *mgoModelImpl) GetPipePaginationSource(aggr MgoAggregate, q bson.M, sort bson.M) util.PaginationSource {
 	return &mongoPipePaginationImpl{
 		MgoDBModel: mm,
 		a:          aggr,
 		q:          q,
+		sort:       sort,
 	}
 }
 
@@ -545,8 +546,9 @@ func (mm *mgoModelImpl) AggrCountDocuments(aggr MgoAggregate, q bson.M) (int64, 
 
 type mongoPipePaginationImpl struct {
 	MgoDBModel
-	a MgoAggregate
-	q bson.M
+	a    MgoAggregate
+	q    bson.M
+	sort bson.M
 }
 
 func (mpi *mongoPipePaginationImpl) Count() (int64, error) {
@@ -554,7 +556,7 @@ func (mpi *mongoPipePaginationImpl) Count() (int64, error) {
 }
 
 func (mpi *mongoPipePaginationImpl) Data(limit, p int64, format func(i interface{}) map[string]interface{}) ([]map[string]interface{}, error) {
-	result, err := mpi.PagePipeFind(mpi.a, mpi.q, limit, p)
+	result, err := mpi.PagePipeFind(mpi.a, mpi.q, mpi.sort, limit, p)
 	if err != nil {
 		return nil, err
 	}
