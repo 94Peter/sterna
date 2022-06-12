@@ -13,6 +13,9 @@ type PaginationSource interface {
 
 type Pagination interface {
 	Output(w io.Writer) error
+	GetRows() interface{}
+	GetAllPages() int64
+	GetPage() int64
 }
 
 type paginationImpl struct {
@@ -29,6 +32,16 @@ const (
 
 func (pi *paginationImpl) Output(w io.Writer) error {
 	return json.NewEncoder(w).Encode(pi)
+}
+
+func (pi *paginationImpl) GetRows() interface{} {
+	return pi.Rows
+}
+func (pi *paginationImpl) GetAllPages() int64 {
+	return pi.AllPages
+}
+func (pi *paginationImpl) GetPage() int64 {
+	return pi.Page
 }
 
 func NewPagination(
