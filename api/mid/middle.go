@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/94peter/sterna/auth"
+	"github.com/gin-gonic/gin"
 )
 
 type AuthMidInter interface {
@@ -26,4 +27,14 @@ func BuildChain(f http.HandlerFunc, m ...Middleware) http.HandlerFunc {
 	}
 	// otherwise nest the handlerfuncs
 	return m[0](BuildChain(f, m[1:]...))
+}
+
+type GinMiddle interface {
+	GetName() string
+	Handler() gin.HandlerFunc
+}
+
+type AuthGinMidInter interface {
+	GinMiddle
+	AddAuthPath(path string, method string, isAuth bool, group []auth.UserPerm)
 }
