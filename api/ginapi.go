@@ -62,6 +62,10 @@ func (serv *apiService) AddAPIs(apis ...GinAPI) GinApiServer {
 				serv.Engine.GET(h.Path, h.Handler)
 			case "POST":
 				serv.Engine.POST(h.Path, h.Handler)
+			case "PUT":
+				serv.Engine.PUT(h.Path, h.Handler)
+			case "DELETE":
+				serv.Engine.DELETE(h.Path, h.Handler)
 			}
 		}
 	}
