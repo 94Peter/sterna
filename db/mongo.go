@@ -21,8 +21,11 @@ const (
 	HeaderDBKey = "raccMongoDB"
 )
 
-func GetCtxMgoDBClient(req *http.Request) MongoDBClient {
-	ctx := req.Context()
+func GetMgoDBClientByReq(req *http.Request) MongoDBClient {
+	return GetMgoDBClientByCtx(req.Context())
+}
+
+func GetMgoDBClientByCtx(ctx context.Context) MongoDBClient {
 	cltInter := ctx.Value(CtxMongoKey)
 	if dbclt, ok := cltInter.(MongoDBClient); ok {
 		return dbclt

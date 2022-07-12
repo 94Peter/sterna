@@ -1,6 +1,7 @@
 package log
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -38,8 +39,11 @@ var (
 	}
 )
 
-func GetCtxLog(req *http.Request) Logger {
-	ctx := req.Context()
+func GetLogByReq(req *http.Request) Logger {
+	return GetLogByCtx(req.Context())
+}
+
+func GetLogByCtx(ctx context.Context) Logger {
 	cltInter := ctx.Value(CtxLogKey)
 
 	if clt, ok := cltInter.(Logger); ok {

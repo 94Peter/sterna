@@ -75,11 +75,11 @@ func NewMgoModel(ctx context.Context, db *mongo.Database, log log.Logger) MgoDBM
 }
 
 func NewMgoModelByReq(req *http.Request, source string) MgoDBModel {
-	mgodbclt := db.GetCtxMgoDBClient(req)
+	mgodbclt := db.GetMgoDBClientByReq(req)
 	if mgodbclt == nil {
 		panic("database not set in req")
 	}
-	log := log.GetCtxLog(req)
+	log := log.GetLogByReq(req)
 	if log == nil {
 		panic("log not set in req")
 	}

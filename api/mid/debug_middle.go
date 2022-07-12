@@ -30,7 +30,7 @@ func (lm *debugMiddle) GetName() string {
 func (lm *debugMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc {
 	return func(f http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			log := log.GetCtxLog(r)
+			log := log.GetLogByReq(r)
 			if log == nil {
 				f(w, r)
 				return

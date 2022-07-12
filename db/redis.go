@@ -22,7 +22,10 @@ type RedisDI interface {
 }
 
 func GetRedisByReq(req *http.Request) RedisClient {
-	ctx := req.Context()
+	return GetRedisFromCtx(req.Context())
+}
+
+func GetRedisFromCtx(ctx context.Context) RedisClient {
 	cltInter := ctx.Value(CtxRedisKey)
 
 	if dbclt, ok := cltInter.(RedisClient); ok {
