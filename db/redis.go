@@ -75,6 +75,12 @@ type RedisClient interface {
 	HMSet(key string, values ...interface{}) error
 	Exists(key string) bool
 	Expired(key string, d time.Duration) (bool, error)
+	NewPiple() CachePipel
+}
+
+type CachePipel interface {
+	Get(key string) *redis.StringCmd
+	Exec() ([]redis.Cmder, error)
 }
 
 type redisV8CltImpl struct {
@@ -140,4 +146,24 @@ func (rci *redisV8CltImpl) HMGet(key string, field ...string) []interface{} {
 
 func (rci *redisV8CltImpl) HMSet(key string, values ...interface{}) error {
 	return rci.clt.HMSet(rci.ctx, key, values...).Err()
+}
+
+func (rci *redisV8CltImpl) NewPiple() CachePipel {
+	return &myPipel{
+		redisPiple: rci.clt.Pipeline(),
+		ctx:        rci.ctx,
+	}
+}
+
+type myPipel struct {
+	ctx        context.Context
+	redisPiple redis.Pipeliner
+}
+
+func (p *myPipel) Get(key string) *redis.StringCmd {
+	return p.redisPiple.Get(p.ctx, key)
+}
+
+func (p *myPipel) Exec() ([]redis.Cmder, error) {
+	return p.redisPiple.Exec(p.ctx)
 }

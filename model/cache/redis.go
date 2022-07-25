@@ -1,18 +1,18 @@
 package cache
 
 import (
-	"bytes"
-	"encoding/gob"
 	"errors"
 	"reflect"
 	"time"
 
+	"github.com/94peter/sterna/dao"
 	"github.com/94peter/sterna/db"
 )
 
 type Cache interface {
-	SaveObj(key string, i interface{}, exp time.Duration) error
-	GetObj(key string, i interface{}) error
+	SaveObj(key string, i dao.CacheObj, exp time.Duration) error
+	GetObj(key string, i dao.CacheObj) error
+	GetObjs(keys []string, d dao.CacheObj) (objs []dao.CacheObj, err error)
 }
 
 func NewRedisCache(clt db.RedisClient) Cache {
@@ -25,18 +25,17 @@ type redisCache struct {
 	db.RedisClient
 }
 
-func (c *redisCache) SaveObj(key string, i interface{}, exp time.Duration) error {
-	buf := bytes.Buffer{}
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(i)
+func (c *redisCache) SaveObj(key string, i dao.CacheObj, exp time.Duration) error {
+
+	b, err := i.Encode()
 	if err != nil {
 		return err
 	}
-	_, err = c.Set(key, buf.Bytes(), exp)
+	_, err = c.Set(key, b, exp)
 	return err
 }
 
-func (c *redisCache) GetObj(key string, i interface{}) error {
+func (c *redisCache) GetObj(key string, i dao.CacheObj) error {
 	if reflect.ValueOf(i).Type().Kind() != reflect.Ptr {
 		return errors.New("must be pointer")
 	}
@@ -44,7 +43,31 @@ func (c *redisCache) GetObj(key string, i interface{}) error {
 	if err != nil {
 		return err
 	}
-	dec := gob.NewDecoder(bytes.NewReader(data))
-	err = dec.Decode(i)
+	err = i.Decode(data)
 	return err
+}
+
+func (c *redisCache) GetObjs(keys []string, d dao.CacheObj) (objs []dao.CacheObj, err error) {
+	var sliceList []dao.CacheObj
+	val := reflect.ValueOf(d)
+	if val.Kind() == reflect.Ptr {
+		val = reflect.Indirect(val)
+	}
+	var newValue reflect.Value
+	var newDoc dao.CacheObj
+	pipe := c.NewPiple()
+	for _, k := range keys {
+		newValue = reflect.New(val.Type())
+		newDoc = newValue.Interface().(dao.CacheObj)
+		newDoc.SetStringCmd(pipe.Get(k))
+		sliceList = append(sliceList, newDoc)
+	}
+	_, err = pipe.Exec()
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range sliceList {
+		s.DecodePipe()
+	}
+	return sliceList, nil
 }
