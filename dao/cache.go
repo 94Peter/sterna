@@ -14,6 +14,7 @@ type CacheObj interface {
 	Decode([]byte) error
 	DecodePipe() error
 	GetError() error
+	HasError() bool
 }
 
 type ComCacheObj struct {
@@ -33,6 +34,10 @@ func (s *ComCacheObj) GetStringCmd() (*redis.StringCmd, error) {
 
 func (s *ComCacheObj) GetError() error {
 	return s.scmd.Err()
+}
+
+func (s *ComCacheObj) HasError() bool {
+	return s.scmd.Err() != nil
 }
 
 func (t *ComCacheObj) Encode(i interface{}) ([]byte, error) {

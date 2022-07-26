@@ -43,6 +43,10 @@ func (s *test) GetError() error {
 	return s.common.GetError()
 }
 
+func (s *test) HasError() bool {
+	return s.common.HasError()
+}
+
 func GetTestRedisClt() (db.RedisClient, error) {
 	conf := db.RedisConf{
 		Host: "127.0.0.1:6379",
@@ -89,7 +93,7 @@ func Test_RedisPipeGetObjs(t *testing.T) {
 	}, time.Hour)
 	assert.Nil(t, err)
 
-	result, err := rc.GetObjs([]string{"key1", "key2", "key3"}, &test{})
+	result, err := rc.GetObjs([]string{"key1", "key2", "key4"}, &test{})
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(result))
 
@@ -98,5 +102,6 @@ func Test_RedisPipeGetObjs(t *testing.T) {
 	tt2 := result[1].(*test)
 	assert.Equal(t, "bbb", tt2.A)
 	tt3 := result[2].(*test)
-	assert.Equal(t, "ccc", tt3.A)
+	assert.True(t, tt3.HasError())
+
 }

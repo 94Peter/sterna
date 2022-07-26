@@ -62,12 +62,11 @@ func (c *redisCache) GetObjs(keys []string, d dao.CacheObj) (objs []dao.CacheObj
 		newDoc.SetStringCmd(pipe.Get(k))
 		sliceList = append(sliceList, newDoc)
 	}
-	_, err = pipe.Exec()
-	if err != nil {
-		return nil, err
-	}
+	pipe.Exec()
 	for _, s := range sliceList {
-		s.DecodePipe()
+		if !s.HasError() {
+			s.DecodePipe()
+		}
 	}
 	return sliceList, nil
 }
