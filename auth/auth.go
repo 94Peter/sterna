@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"bytes"
+	"encoding/gob"
 	"net/http"
 
 	"github.com/94peter/sterna/dao"
@@ -43,6 +45,8 @@ type ReqUser interface {
 	GetId() string
 	GetPerm() []string
 	GetDB() string
+	Encode() string
+	Decode(data string) error
 }
 
 type reqUserImpl struct {
@@ -57,25 +61,60 @@ func (ru *reqUserImpl) Host() string {
 	return ru.host
 }
 
-func (ru reqUserImpl) GetId() string {
+func (ru *reqUserImpl) GetId() string {
 	return ru.id
 }
 
-func (ru reqUserImpl) GetDB() string {
+func (ru *reqUserImpl) GetDB() string {
 	// ReqUser無userDB
 	return ""
 }
 
-func (ru reqUserImpl) GetName() string {
+func (ru *reqUserImpl) GetName() string {
 	return ru.name
 }
 
-func (ru reqUserImpl) GetAccount() string {
+func (ru *reqUserImpl) GetAccount() string {
 	return ru.acc
 }
 
-func (ru reqUserImpl) GetPerm() []string {
+func (ru *reqUserImpl) GetPerm() []string {
 	return ru.perm
+}
+
+func (ru *reqUserImpl) Encode() string {
+	var network bytes.Buffer
+	enc := gob.NewEncoder(&network)
+	enc.Encode(serializeObj{
+		1: ru.host,
+		2: ru.id,
+		3: ru.acc,
+		4: ru.name,
+		5: ru.perm,
+	})
+	return network.String()
+}
+
+type serializeObj map[int]interface{}
+
+func (ru *reqUserImpl) Decode(data string) error {
+	b := bytes.NewBufferString(data)
+	dec := gob.NewDecoder(b)
+	result := serializeObj{}
+	err := dec.Decode(&result)
+	if err != nil {
+		return err
+	}
+	ru.host = result[1].(string)
+	ru.id = result[2].(string)
+	ru.acc = result[3].(string)
+	ru.name = result[4].(string)
+	ru.perm = result[5].([]string)
+	return nil
+}
+
+func NewEmptyReqUser() ReqUser {
+	return &reqUserImpl{}
 }
 
 func NewReqUser(host, uid, acc, name string, perm []string) ReqUser {
@@ -134,6 +173,39 @@ func (ru *accessGuestImpl) GetSourceID() string {
 
 func (ru *accessGuestImpl) GetPerm() []string {
 	return ru.perm
+}
+
+func (ru *accessGuestImpl) Encode() string {
+	var network bytes.Buffer
+	enc := gob.NewEncoder(&network)
+	enc.Encode(serializeObj{
+		1: ru.host,
+		2: ru.source,
+		3: ru.sourceID,
+		4: ru.dB,
+		5: ru.account,
+		6: ru.name,
+		7: ru.perm,
+	})
+	return network.String()
+}
+
+func (ru *accessGuestImpl) Decode(data string) error {
+	b := bytes.NewBufferString(data)
+	dec := gob.NewDecoder(b)
+	result := serializeObj{}
+	err := dec.Decode(&result)
+	if err != nil {
+		return err
+	}
+	ru.host = result[1].(string)
+	ru.source = result[2].(string)
+	ru.sourceID = result[3].(string)
+	ru.dB = result[4].(string)
+	ru.account = result[5].(string)
+	ru.name = result[6].(string)
+	ru.perm = result[7].([]string)
+	return nil
 }
 
 func NewAccessGuest(host, source, sid, acc, name, db string, perm []string) AccessGuest {
@@ -221,6 +293,29 @@ func (ru *guestUser) GetAccount() string {
 
 func (ru *guestUser) GetPerm() []string {
 	return []string{string(PermGuest)}
+}
+
+func (ru *guestUser) Encode() string {
+	var network bytes.Buffer
+	enc := gob.NewEncoder(&network)
+	enc.Encode(serializeObj{
+		1: ru.host,
+		2: ru.ip,
+	})
+	return network.String()
+}
+
+func (ru *guestUser) Decode(data string) error {
+	b := bytes.NewBufferString(data)
+	dec := gob.NewDecoder(b)
+	result := serializeObj{}
+	err := dec.Decode(&result)
+	if err != nil {
+		return err
+	}
+	ru.host = result[1].(string)
+	ru.ip = result[2].(string)
+	return nil
 }
 
 func GetUserInfo(req *http.Request) ReqUser {
