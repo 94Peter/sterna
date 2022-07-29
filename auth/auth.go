@@ -2,8 +2,11 @@ package auth
 
 import (
 	"bytes"
+	"context"
 	"encoding/gob"
+	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/94peter/sterna/dao"
 	"github.com/94peter/sterna/util"
@@ -84,7 +87,7 @@ func (ru *reqUserImpl) GetPerm() []string {
 
 func (ru *reqUserImpl) Encode() string {
 	var network bytes.Buffer
-	enc := gob.NewEncoder(&network)
+	enc := json.NewEncoder(&network)
 	enc.Encode(serializeObj{
 		1: ru.host,
 		2: ru.id,
@@ -92,24 +95,27 @@ func (ru *reqUserImpl) Encode() string {
 		4: ru.name,
 		5: ru.perm,
 	})
-	return network.String()
+	return strings.Trim(network.String(), "\n")
 }
 
 type serializeObj map[int]interface{}
 
 func (ru *reqUserImpl) Decode(data string) error {
 	b := bytes.NewBufferString(data)
-	dec := gob.NewDecoder(b)
+	dec := json.NewDecoder(b)
 	result := serializeObj{}
 	err := dec.Decode(&result)
 	if err != nil {
 		return err
 	}
+	permInters := result[5].([]interface{})
+	for _, i := range permInters {
+		ru.perm = append(ru.perm, i.(string))
+	}
 	ru.host = result[1].(string)
 	ru.id = result[2].(string)
 	ru.acc = result[3].(string)
 	ru.name = result[4].(string)
-	ru.perm = result[5].([]string)
 	return nil
 }
 
@@ -177,7 +183,7 @@ func (ru *accessGuestImpl) GetPerm() []string {
 
 func (ru *accessGuestImpl) Encode() string {
 	var network bytes.Buffer
-	enc := gob.NewEncoder(&network)
+	enc := json.NewEncoder(&network)
 	enc.Encode(serializeObj{
 		1: ru.host,
 		2: ru.source,
@@ -187,12 +193,12 @@ func (ru *accessGuestImpl) Encode() string {
 		6: ru.name,
 		7: ru.perm,
 	})
-	return network.String()
+	return strings.Trim(network.String(), "\n")
 }
 
 func (ru *accessGuestImpl) Decode(data string) error {
 	b := bytes.NewBufferString(data)
-	dec := gob.NewDecoder(b)
+	dec := json.NewDecoder(b)
 	result := serializeObj{}
 	err := dec.Decode(&result)
 	if err != nil {
@@ -302,7 +308,7 @@ func (ru *guestUser) Encode() string {
 		1: ru.host,
 		2: ru.ip,
 	})
-	return network.String()
+	return strings.Trim(network.String(), "\n")
 }
 
 func (ru *guestUser) Decode(data string) error {
@@ -319,7 +325,10 @@ func (ru *guestUser) Decode(data string) error {
 }
 
 func GetUserInfo(req *http.Request) ReqUser {
-	ctx := req.Context()
+	return GetUserInfoByCtx(req.Context())
+}
+
+func GetUserInfoByCtx(ctx context.Context) ReqUser {
 	reqID := ctx.Value(CtxUserInfoKey)
 	if ret, ok := reqID.(ReqUser); ok {
 		return ret
