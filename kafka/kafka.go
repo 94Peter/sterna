@@ -9,6 +9,11 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
+type ConfigDI interface {
+	NewWriter(ctx context.Context, topic string) Writer
+	NewReader(ctx context.Context, groupID, topic string, l log.Logger) Reader
+}
+
 type Config struct {
 	Brokers []string
 }

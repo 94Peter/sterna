@@ -3,7 +3,6 @@ package mail
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/94peter/sterna/log"
 
@@ -23,25 +22,28 @@ type MailServ interface {
 }
 
 type SendGridConf struct {
-	From *sgMail.Email      `yaml:"from"`
-	Bcc  *sgMail.BccSetting `yaml:"bcc"`
+	ApiKey string             `yaml:"apiKey"`
+	From   *sgMail.Email      `yaml:"from"`
+	Bcc    *sgMail.BccSetting `yaml:"bcc"`
 }
 
 func (conf *SendGridConf) NewMailServ(l log.Logger) MailServ {
 	return &sendGridServ{
 		SendGridConf: conf,
+		key:          conf.ApiKey,
 		l:            l,
 	}
 }
 
 type sendGridServ struct {
 	*SendGridConf
-	l log.Logger
+	l   log.Logger
+	key string
 
 	subject, txt, html string
 }
 
-const sendgridKey = "SENDGRID_API_KEY"
+const ENV_SendgridKey = "SENDGRID_API_KEY"
 
 func (sgc *sendGridServ) Subject(s string) MailServ {
 	sgc.subject = s
@@ -68,12 +70,11 @@ func (sg *sendGridServ) SendSingle(name, mail string) error {
 		message.SetMailSettings(sgMail.NewMailSettings().SetBCC(sg.Bcc))
 	}
 
-	key := os.Getenv(sendgridKey)
-	if key == "" {
-		return errors.New("missing env key: " + sendgridKey)
+	if sg.key == "" {
+		return errors.New("missing env key: " + sg.key)
 	}
 
-	client := sendgrid.NewSendClient(key)
+	client := sendgrid.NewSendClient(sg.key)
 	res, err := client.Send(message)
 	if err != nil {
 		return err

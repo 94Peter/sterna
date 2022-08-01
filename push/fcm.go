@@ -1,4 +1,4 @@
-package notify
+package push
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 )
 
 type PushDI interface {
-	NewPushServ() PushServ
+	NewPushServ() (PushServ, error)
 }
 
 type PushServ interface {
