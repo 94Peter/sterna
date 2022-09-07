@@ -226,7 +226,7 @@ func (mm *mgoModelImpl) BatchUpdate(doclist []dao.DocInter, getField func(d dao.
 		operations = append(operations, op)
 	}
 	bulkOption := options.BulkWriteOptions{}
-	_, err = collection.BulkWrite(context.TODO(), operations, &bulkOption)
+	_, err = collection.BulkWrite(mm.ctx, operations, &bulkOption)
 
 	if excep, ok := err.(mongo.BulkWriteException); ok {
 		for _, e := range excep.WriteErrors {
