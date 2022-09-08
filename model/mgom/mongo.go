@@ -196,10 +196,10 @@ func (mm *mgoModelImpl) CreateCollection(dlist ...dao.DocInter) (err error) {
 		mm.log.Info("check collection " + d.GetC())
 		if !mm.isCollectExisted(d) {
 			if len(d.GetIndexes()) > 0 {
-				indexStr, err = mm.db.Collection(d.GetC()).Indexes().CreateMany(mm.selfCtx, d.GetIndexes())
+				indexStr, err = mm.db.Collection(d.GetC()).Indexes().CreateMany(mm.ctx, d.GetIndexes())
 				mm.log.Info(fmt.Sprintln("created index: ", indexStr))
 			} else {
-				err = mm.db.CreateCollection(mm.selfCtx, d.GetC())
+				err = mm.db.CreateCollection(mm.ctx, d.GetC())
 			}
 			if err != nil {
 				mm.log.Warn(fmt.Sprintf("created collection [%s] fail: %s", d.GetC(), err.Error()))
