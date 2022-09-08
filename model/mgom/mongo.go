@@ -242,6 +242,12 @@ func (mm *mgoModelImpl) BatchSave(doclist []dao.DocInter, u dao.LogUser) (insert
 		return
 	}
 	collection := mm.db.Collection(doclist[0].GetC())
+	if !mm.disableCheckBeforeSave {
+		err := mm.CreateCollection(doclist[0])
+		if err != nil {
+			return nil, doclist, err
+		}
+	}
 	ordered := false
 	var batch []interface{}
 	for _, d := range doclist {
