@@ -17,8 +17,11 @@ func InitConfByFile(f string, di interface{}) {
 		fmt.Println("load conf fail: " + f)
 		panic(err)
 	}
+	InitConfByByte(yamlFile, di)
+}
 
-	err = yaml.Unmarshal(yamlFile, di)
+func InitConfByByte(b []byte, di interface{}) {
+	err := yaml.Unmarshal(b, di)
 	if err != nil {
 		panic(err)
 	}
