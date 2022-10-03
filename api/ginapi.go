@@ -57,6 +57,9 @@ func (serv *apiService) Middles(mids ...mid.GinMiddle) GinApiServer {
 func (serv *apiService) AddAPIs(apis ...GinAPI) GinApiServer {
 	for _, api := range apis {
 		for _, h := range api.GetAPIs() {
+			if serv.authMid != nil {
+				serv.authMid.AddAuthPath(h.Path, h.Method, h.Auth, h.Group)
+			}
 			switch h.Method {
 			case "GET":
 				serv.Engine.GET(h.Path, h.Handler)
