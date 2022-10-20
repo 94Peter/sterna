@@ -62,10 +62,14 @@ func (sgc *sendGridServ) Html(h string) MailServ {
 }
 
 func (sg *sendGridServ) SendSingle(name, mail string) error {
+	sg.l.Debug("[SendGridServ] start SendSingle")
 	if sg.SendGridConf == nil {
 		return errors.New("sendGridConf is nil")
 	}
+	sg.l.Debug(fmt.Sprintf("[SendGridServ] mail to %s(%s)", name, mail))
 	to := sgMail.NewEmail(name, mail)
+	sg.l.Debug(fmt.Sprintf("[SendGridServ] paint is %s", sg.txt))
+	sg.l.Debug(fmt.Sprintf("[SendGridServ] html is %s", sg.html))
 	message := sgMail.NewSingleEmail(sg.From, sg.subject, to, sg.txt, sg.html)
 	if sg.Bcc != nil && *sg.Bcc.Enable {
 		message.SetMailSettings(sgMail.NewMailSettings().SetBCC(sg.Bcc))
@@ -80,6 +84,7 @@ func (sg *sendGridServ) SendSingle(name, mail string) error {
 	if err != nil {
 		return err
 	} else {
+		sg.l.Debug(fmt.Sprintf("[SendGridServ] statusCode is [%d] and body is %s", res.StatusCode, res.Body))
 		if res.StatusCode > 299 {
 			return fmt.Errorf("status code [%d] mail error: %s", res.StatusCode, res.Body)
 		} else {
@@ -95,12 +100,14 @@ type To struct {
 }
 
 func (sg *sendGridServ) SendMulti(tos []*To) error {
+	sg.l.Debug("[SendGridServ] start SendMulti")
 	v3mail := sgMail.NewV3Mail()
 	v3mail.SetFrom(sg.From)
 	v3mail.Subject = sg.subject
 
 	p := sgMail.NewPersonalization()
 	for _, t := range tos {
+		sg.l.Debug(fmt.Sprintf("[SendGridServ] mail to %s(%s)", t.Name, t.Mail))
 		p.AddTos(&sgMail.Email{
 			Name:    t.Name,
 			Address: t.Mail,
@@ -110,9 +117,11 @@ func (sg *sendGridServ) SendMulti(tos []*To) error {
 	var contents []*sgMail.Content
 	if sg.txt != "" {
 		contents = append(contents, sgMail.NewContent("text/plain", sg.txt))
+		sg.l.Debug(fmt.Sprintf("[SendGridServ] paint is %s", sg.txt))
 	}
 	if sg.html != "" {
 		contents = append(contents, sgMail.NewContent("text/html", sg.html))
+		sg.l.Debug(fmt.Sprintf("[SendGridServ] html is %s", sg.html))
 	}
 	v3mail.AddContent(contents...)
 	if len(contents) == 0 {
@@ -122,11 +131,11 @@ func (sg *sendGridServ) SendMulti(tos []*To) error {
 		v3mail.SetMailSettings(sgMail.NewMailSettings().SetBCC(sg.Bcc))
 	}
 	client := sendgrid.NewSendClient(sg.key)
-
 	res, err := client.Send(v3mail)
 	if err != nil {
 		return err
 	} else {
+		sg.l.Debug(fmt.Sprintf("[SendGridServ] statusCode is [%d] and body is %s", res.StatusCode, res.Body))
 		if res.StatusCode > 299 {
 			return fmt.Errorf("status code [%d] mail error: %s", res.StatusCode, res.Body)
 		} else {
