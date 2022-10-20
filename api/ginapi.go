@@ -83,7 +83,7 @@ func (serv *apiService) Run(port string) error {
 	return serv.Engine.Run(":" + port)
 }
 
-func GinOutputErr(c *gin.Context, err error) {
+func GinOutputErr(c *gin.Context, service string, err error) {
 	if err == nil {
 		return
 	}
@@ -92,6 +92,7 @@ func GinOutputErr(c *gin.Context, err error) {
 			map[string]interface{}{
 				"status":   apiErr.GetStatus(),
 				"title":    apiErr.GetErrorMsg(),
+				"service":  service,
 				"errorKey": apiErr.GetErrorKey(),
 			})
 	} else {
@@ -99,6 +100,7 @@ func GinOutputErr(c *gin.Context, err error) {
 			map[string]interface{}{
 				"status":   http.StatusInternalServerError,
 				"title":    err.Error(),
+				"service":  service,
 				"errorKey": "",
 			})
 	}
@@ -108,4 +110,22 @@ func GinOutputErr(c *gin.Context, err error) {
 func GinOutputJson(c *gin.Context, statusCode int, data interface{}) {
 	c.Header("Content-Type", "application/json")
 	c.SecureJSON(statusCode, data)
+}
+
+type ErrorOutputAPI interface {
+	GinOutputErr(c *gin.Context, err error)
+}
+
+func NewErrorOutputAPI(service string) ErrorOutputAPI {
+	return &commonAPI{
+		service: service,
+	}
+}
+
+type commonAPI struct {
+	service string
+}
+
+func (capi *commonAPI) GinOutputErr(c *gin.Context, err error) {
+	GinOutputErr(c, capi.service, err)
 }
