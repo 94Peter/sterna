@@ -85,6 +85,9 @@ func (j *JwtConf) NewJwt() JwtToken {
 }
 
 func (j *JwtConf) ParseToken(tokenStr string) (*jwt.Token, error) {
+	if j == nil {
+		return nil, errors.New("jwtConf is nil")
+	}
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		pk, err := j.getPublicKey()
 		return pk, err
