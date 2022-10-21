@@ -1,6 +1,7 @@
 package sterna
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -9,6 +10,10 @@ import (
 	"github.com/94peter/sterna/util"
 
 	yaml "gopkg.in/yaml.v2"
+)
+
+const (
+	CtxServDiKey = util.CtxKey("ServiceDI")
 )
 
 func InitConfByFile(f string, di interface{}) {
@@ -51,4 +56,9 @@ func InitConfByUri(uri string, di interface{}) error {
 	}
 	util.InitValidator()
 	return nil
+}
+
+func GetDiByCtx(ctx context.Context) interface{} {
+	diInter := ctx.Value(CtxServDiKey)
+	return diInter
 }
