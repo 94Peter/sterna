@@ -174,3 +174,7 @@ func (pr parseTokenResult) Perms() []string {
 func (pr parseTokenResult) Sub() string {
 	return pr["sub"].(string)
 }
+
+func (pr parseTokenResult) Target() string {
+	return pr["target"].(string)
+}

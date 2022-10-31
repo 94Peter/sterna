@@ -17,6 +17,7 @@ type TokenParserResult interface {
 	Account() string
 	Name() string
 	Sub() string
+	Target() string
 }
 
 type AuthTokenParser interface {

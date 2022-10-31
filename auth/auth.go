@@ -350,3 +350,32 @@ func GetCompUserInfo(req *http.Request) CompanyUser {
 	}
 	return nil
 }
+
+func NewTargetReqUser(target string, u ReqUser) TargetReqUser {
+	return &targetReqUserImpl{
+		ReqUser: u,
+		target:  target,
+	}
+}
+
+func GetTargetUserInfo(req *http.Request) TargetReqUser {
+	reqID := req.Context().Value(CtxUserInfoKey)
+	if ret, ok := reqID.(TargetReqUser); ok {
+		return ret
+	}
+	return nil
+}
+
+type TargetReqUser interface {
+	ReqUser
+	Target() string
+}
+
+type targetReqUserImpl struct {
+	ReqUser
+	target string
+}
+
+func (r *targetReqUserImpl) Target() string {
+	return r.target
+}
