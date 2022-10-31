@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/94peter/sterna/log"
+	"github.com/94peter/sterna/util"
 
 	"github.com/gorilla/mux"
 )
@@ -52,6 +53,7 @@ func (lm *debugMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc
 			log.Debug("body: " + string(b))
 			start := time.Now()
 			f(w, r)
+			util.ListContextValue(r.Context(), false)
 			delta := time.Now().Sub(start)
 			if delta.Seconds() > 3 {
 				log.Warn("too slow")
