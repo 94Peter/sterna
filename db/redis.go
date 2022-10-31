@@ -4,56 +4,42 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/94peter/sterna/util"
 	"github.com/go-redis/redis/v8"
 )
 
-const (
-	CtxRedisKey = util.CtxKey("ctxRedisKey")
-)
-
 type RedisDI interface {
-	NewRedisClient(ctx context.Context) (RedisClient, error)
-}
-
-func GetRedisByReq(req *http.Request) RedisClient {
-	return GetRedisFromCtx(req.Context())
-}
-
-func GetRedisFromCtx(ctx context.Context) RedisClient {
-	cltInter := ctx.Value(CtxRedisKey)
-
-	if dbclt, ok := cltInter.(RedisClient); ok {
-		return dbclt
-	}
-	return nil
+	NewRedisClientDB(ctx context.Context, db int) (RedisClient, error)
+	GetDB(dbname string) int
 }
 
 type RedisConf struct {
-	Host string `yaml:"host"`
-	Pwd  string `yaml:"pass"`
-	DB   int    `yaml:"db"`
+	Host  string         `yaml:"host"`
+	Pwd   string         `yaml:"pass"`
+	DbMap map[string]int `yaml:"dbMap"`
 }
 
-func (rc *RedisConf) NewRedisClient(ctx context.Context) (RedisClient, error) {
+func (rc *RedisConf) GetDB(dbname string) int {
+	return rc.DbMap[dbname]
+}
+
+func (rc *RedisConf) NewRedisClientDB(ctx context.Context, db int) (RedisClient, error) {
 	//const connTimeout = time.Second * 5
 	var r RedisClient
 	r = &redisV8CltImpl{
 		clt: redis.NewClient(&redis.Options{
 			Addr: rc.Host,
 			// Password:     r.Pwd, // no password set
-			DB: rc.DB, // use default DB
+			DB: db, // use default DB
 			// DialTimeout:  connTimeout,
 			// ReadTimeout:  connTimeout,
 			// WriteTimeout: connTimeout,
 		}),
 		ctx: ctx,
-		db:  rc.DB,
+		db:  db,
 	}
 
 	if r.Ping() != "PONG" {

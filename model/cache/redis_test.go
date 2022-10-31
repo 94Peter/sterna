@@ -50,9 +50,8 @@ func (s *test) HasError() bool {
 func GetTestRedisClt() (db.RedisClient, error) {
 	conf := db.RedisConf{
 		Host: "127.0.0.1:6379",
-		DB:   0,
 	}
-	return conf.NewRedisClient(context.TODO())
+	return conf.NewRedisClientDB(context.TODO(), 0)
 }
 
 func Test_RedisSetGetObj(t *testing.T) {
