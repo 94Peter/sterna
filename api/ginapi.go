@@ -16,7 +16,6 @@ type GinAPI interface {
 func NewGinApiServer(mode string) GinApiServer {
 	gin.SetMode(mode)
 	return &apiService{
-		//Engine: gin.Default(),
 		Engine: gin.New(),
 	}
 }
@@ -88,7 +87,7 @@ func GinOutputErr(c *gin.Context, service string, err error) {
 		return
 	}
 	if apiErr, ok := err.(ApiError); ok {
-		GinOutputJson(c, apiErr.GetStatus(),
+		c.AbortWithStatusJSON(apiErr.GetStatus(),
 			map[string]interface{}{
 				"status":   apiErr.GetStatus(),
 				"title":    apiErr.GetErrorMsg(),
@@ -96,7 +95,7 @@ func GinOutputErr(c *gin.Context, service string, err error) {
 				"errorKey": apiErr.GetErrorKey(),
 			})
 	} else {
-		GinOutputJson(c, http.StatusInternalServerError,
+		c.AbortWithStatusJSON(http.StatusInternalServerError,
 			map[string]interface{}{
 				"status":   http.StatusInternalServerError,
 				"title":    err.Error(),
@@ -105,11 +104,6 @@ func GinOutputErr(c *gin.Context, service string, err error) {
 			})
 	}
 	return
-}
-
-func GinOutputJson(c *gin.Context, statusCode int, data interface{}) {
-	c.Header("Content-Type", "application/json")
-	c.SecureJSON(statusCode, data)
 }
 
 type ErrorOutputAPI interface {
