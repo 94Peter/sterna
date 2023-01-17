@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"strings"
 
+	apiErr "github.com/94peter/sterna/api/err"
 	"github.com/94peter/sterna/auth"
 	"github.com/94peter/sterna/log"
 	"github.com/94peter/sterna/util"
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/mux"
 )
 
@@ -20,13 +22,20 @@ type TokenParserResult interface {
 	Target() string
 }
 
-type AuthTokenParser interface {
-	Parser(jwt auth.JwtDI, token string) (TokenParserResult, error)
-}
+type AuthTokenParser func(token string) (TokenParserResult, error)
 
 func NewBearerAuthMid(tokenParser AuthTokenParser) AuthMidInter {
 	return &bearAuthMiddle{
-		parser:   tokenParser.Parser,
+		parser:   tokenParser,
+		authMap:  make(map[string]uint8),
+		groupMap: make(map[string][]auth.UserPerm),
+	}
+}
+
+func NewGinBearAuthMid(service string, tokenParser AuthTokenParser) AuthGinMidInter {
+	return &bearAuthMiddle{
+		service:  service,
+		parser:   tokenParser,
 		authMap:  make(map[string]uint8),
 		groupMap: make(map[string][]auth.UserPerm),
 	}
@@ -37,7 +46,8 @@ func (lm *bearAuthMiddle) GetName() string {
 }
 
 type bearAuthMiddle struct {
-	parser   func(jwt auth.JwtDI, token string) (TokenParserResult, error)
+	service  string
+	parser   AuthTokenParser
 	log      log.Logger
 	authMap  map[string]uint8
 	groupMap map[string][]auth.UserPerm
@@ -46,6 +56,10 @@ type bearAuthMiddle struct {
 const (
 	BearerAuthTokenKey = "Authorization"
 )
+
+func (lm *bearAuthMiddle) outputErr(c *gin.Context, err error) {
+	apiErr.GinOutputErr(c, lm.service, err)
+}
 
 func (am *bearAuthMiddle) AddAuthPath(path string, method string, isAuth bool, group []auth.UserPerm) {
 	value := uint8(0)
@@ -102,9 +116,8 @@ func (am *bearAuthMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerF
 					w.Write([]byte("invalid token: missing Bearer"))
 					return
 				}
-				servDi := util.GetCtxVal(r, CtxServDiKey)
 				authToken = authToken[7:]
-				result, err := am.parser(servDi.(auth.JwtDI), authToken)
+				result, err := am.parser(authToken)
 				if err != nil {
 					w.WriteHeader(http.StatusUnauthorized)
 					w.Write([]byte("invalid token: " + err.Error()))
@@ -131,5 +144,52 @@ func (am *bearAuthMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerF
 			}
 			f(w, r)
 		}
+	}
+}
+
+func (m *bearAuthMiddle) Handler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		path := c.FullPath()
+		method := c.Request.Method
+		if path == "" {
+			m.outputErr(c, apiErr.New(http.StatusNotFound, "path not found"))
+			return
+		}
+		if m.IsAuth(path, method) {
+			authToken := c.GetHeader(BearerAuthTokenKey)
+			if authToken == "" {
+				m.outputErr(c, apiErr.New(http.StatusUnauthorized, "miss token"))
+				return
+			}
+
+			if !strings.HasPrefix(authToken, "Bearer ") {
+				m.outputErr(c, apiErr.New(http.StatusUnauthorized, "invalid token: missing Bearer"))
+				return
+			}
+			authToken = authToken[7:]
+			result, err := m.parser(authToken)
+			if err != nil {
+				m.outputErr(c, apiErr.New(http.StatusUnauthorized, "invalid token: "+err.Error()))
+				return
+			}
+			host := util.GetHost(c.Request)
+			if result.Host() != host {
+				m.outputErr(c, apiErr.New(http.StatusUnauthorized,
+					fmt.Sprintf("host not match: [%s] is not [%s]", result.Host(), host)))
+				return
+			}
+			if hasPerm := m.HasPerm(path, method, result.Perms()); !hasPerm {
+				m.outputErr(c, apiErr.New(http.StatusUnauthorized, "permission error"))
+				return
+			}
+			c.Set(string(auth.CtxUserInfoKey), auth.NewReqUser(
+				result.Host(),
+				result.Sub(),
+				result.Account(),
+				result.Name(),
+				result.Perms(),
+			))
+		}
+		c.Next()
 	}
 }

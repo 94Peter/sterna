@@ -24,16 +24,26 @@ func (am *mockAuthMiddle) AddAuthPath(path string, method string, isAuth bool, g
 
 func (am *mockAuthMiddle) Handler() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Request = util.SetCtxKeyVal(
-			c.Request,
-			auth.CtxUserInfoKey,
-			auth.NewReqUser(
-				util.GetHost(c.Request),
-				c.GetHeader("Mock_User_UID"),
-				c.GetHeader("Mock_User_ACC"),
-				c.GetHeader("Mock_User_NAM"),
-				strings.Split(c.GetHeader("Mock_User_Roles"), ","),
-			))
+		userID := c.GetHeader("Mock_User_UID")
+		if userID == "" {
+			userID = "mock-id"
+		}
+		userAcc := c.GetHeader("Mock_User_ACC")
+		if userAcc == "" {
+			userAcc = "mock-account"
+		}
+		userName := c.GetHeader("Mock_User_NAM")
+		if userName == "" {
+			userName = "mock-name"
+		}
+		roles := strings.Split(c.GetHeader("Mock_User_Roles"), ",")
+		if len(roles) == 0 {
+			roles = []string{"mock"}
+		}
+		c.Set(
+			string(auth.CtxUserInfoKey),
+			auth.NewReqUser(util.GetHost(c.Request), userID, userAcc, userName, roles),
+		)
 		c.Next()
 	}
 }

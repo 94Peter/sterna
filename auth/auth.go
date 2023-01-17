@@ -60,6 +60,17 @@ type reqUserImpl struct {
 	perm []string
 }
 
+type Perms []string
+
+func (p Perms) HasPerm(pp string) bool {
+	for _, s := range p {
+		if s == pp {
+			return true
+		}
+	}
+	return false
+}
+
 func (ru *reqUserImpl) Host() string {
 	return ru.host
 }

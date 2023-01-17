@@ -2,80 +2,21 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
+	apiErr "github.com/94peter/sterna/api/err"
 	"github.com/94peter/sterna/api/mid"
 	"github.com/94peter/sterna/auth"
 
 	"github.com/gorilla/mux"
 )
 
-type ApiError interface {
-	GetStatus() int
-	GetErrorKey() string
-	GetErrorMsg() string
-	error
-}
-
-type myApiError struct {
-	statusCode int
-	message    string
-	key        string
-}
-
-func (e myApiError) GetStatus() int {
-	return e.statusCode
-}
-
-func (e myApiError) GetErrorKey() string {
-	return e.key
-}
-
-func (e myApiError) GetErrorMsg() string {
-	return e.message
-}
-
-func (e myApiError) Error() string {
-	return fmt.Sprintf("%v: %v", e.statusCode, e.message)
-}
-
-func NewApiError(status int, msg string) ApiError {
-	return myApiError{statusCode: status, message: msg}
-}
-
-func NewApiErrorWithKey(status int, msg string, key string) ApiError {
-	return myApiError{statusCode: status, message: msg, key: key}
-}
-
-func OutputErr(w http.ResponseWriter, err error) {
-	if err == nil {
-		return
-	}
-	if apiErr, ok := err.(ApiError); ok {
-		OutputJson(w, apiErr.GetStatus(),
-			map[string]interface{}{
-				"status":   apiErr.GetStatus(),
-				"title":    apiErr.GetErrorMsg(),
-				"errorKey": apiErr.GetErrorKey(),
-			})
-	} else {
-		OutputJson(w, http.StatusInternalServerError,
-			map[string]interface{}{
-				"status":   http.StatusInternalServerError,
-				"title":    err.Error(),
-				"errorKey": "",
-			})
-	}
-	return
-}
-
 func OutputJson(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	err := json.NewEncoder(w).Encode(data)
 	if err != nil {
-		OutputErr(w, err)
+		apiErr.OutputErr(w, err)
 	}
 }
 

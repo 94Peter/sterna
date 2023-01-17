@@ -10,6 +10,7 @@ import (
 )
 
 type JwtToken interface {
+	GetTokenWithoutExpired(host string, data map[string]interface{}) (*string, error)
 	GetToken(host string, data map[string]interface{}, exp uint8) (*string, error)
 	ParseToken(tokenStr string) (*jwt.Token, error)
 	// 對特定資源存取金鑰
@@ -127,6 +128,32 @@ func (j *JwtConf) GetToken(host string, data map[string]interface{}, exp uint8) 
 	data["iss"] = host
 	data["iat"] = now.Unix()
 	data["exp"] = now.Add(time.Duration(exp) * time.Minute).Unix()
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims(data))
+
+	token.Header = j.getHeader()
+
+	pk, err := j.getPrivateKey()
+	if err != nil {
+		return nil, err
+	}
+	ss, err := token.SignedString(pk)
+	if err != nil {
+		return nil, err
+	}
+	return &ss, nil
+}
+
+func (j *JwtConf) GetTokenWithoutExpired(host string, data map[string]interface{}) (*string, error) {
+	if j == nil {
+		return nil, errors.New("jwtConf not set")
+	}
+	if data == nil {
+		return nil, errors.New("no data")
+	}
+
+	now := time.Now()
+	data["iss"] = host
+	data["iat"] = now.Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims(data))
 
 	token.Header = j.getHeader()
