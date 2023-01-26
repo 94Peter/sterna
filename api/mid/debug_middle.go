@@ -10,6 +10,7 @@ import (
 
 	"github.com/94peter/sterna/log"
 	"github.com/94peter/sterna/util"
+	"github.com/gin-gonic/gin"
 
 	"github.com/gorilla/mux"
 )
@@ -17,6 +18,12 @@ import (
 func NewDebugMid(name string) Middle {
 	return &debugMiddle{
 		name: name,
+	}
+}
+
+func NewGinDebugMid(service string) GinMiddle {
+	return &debugMiddle{
+		name: service,
 	}
 }
 
@@ -60,5 +67,32 @@ func (lm *debugMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc
 			}
 			log.Debug("-------End Debug Request-------")
 		}
+	}
+}
+
+func (m *debugMiddle) Handler() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		fmt.Println("-------Debug Request-------")
+		path := c.FullPath()
+		fmt.Println("full path: " + path)
+		path = fmt.Sprintf("%s,%s?%s", c.Request.Method, c.Request.URL.Path, c.Request.URL.RawQuery)
+		fmt.Println("path: " + path)
+		header, _ := json.Marshal(c.Request.Header)
+		fmt.Println("header: " + string(header))
+		b, err := ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			fmt.Println("read body fail: ", err)
+		}
+		c.Request.Body.Close()
+		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b))
+		fmt.Println("body: " + string(b))
+		start := time.Now()
+		c.Next()
+		delta := time.Now().Sub(start)
+		if delta.Seconds() > 3 {
+			fmt.Println("!!!! too slow !!!")
+		}
+		fmt.Println("-------End Debug Request-------")
 	}
 }
