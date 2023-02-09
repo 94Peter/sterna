@@ -73,7 +73,7 @@ func (lm *debugMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerFunc
 func (m *debugMiddle) Handler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
-		fmt.Println("-------Debug Request-------")
+		fmt.Println("-------Request-------")
 		path := c.FullPath()
 		fmt.Println("full path: " + path)
 		path = fmt.Sprintf("%s,%s?%s", c.Request.Method, c.Request.URL.Path, c.Request.URL.RawQuery)
@@ -87,12 +87,30 @@ func (m *debugMiddle) Handler() gin.HandlerFunc {
 		c.Request.Body.Close()
 		c.Request.Body = ioutil.NopCloser(bytes.NewBuffer(b))
 		fmt.Println("body: " + string(b))
+		blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
+		c.Writer = blw
 		start := time.Now()
 		c.Next()
 		delta := time.Now().Sub(start)
 		if delta.Seconds() > 3 {
 			fmt.Println("!!!! too slow !!!")
 		}
-		fmt.Println("-------End Debug Request-------")
+		fmt.Println("-------End Request-------")
+		fmt.Println("-------Response-------")
+		fmt.Println(c.Writer.Status())
+		header, _ = json.Marshal(c.Writer.Header())
+		fmt.Println("header: " + string(header))
+		fmt.Println("Response body: " + blw.body.String())
+		fmt.Println("-------End Response-------")
 	}
+}
+
+type bodyLogWriter struct {
+	gin.ResponseWriter
+	body *bytes.Buffer
+}
+
+func (w bodyLogWriter) Write(b []byte) (int, error) {
+	w.body.Write(b)
+	return w.ResponseWriter.Write(b)
 }
