@@ -32,10 +32,9 @@ func NewBearerAuthMid(tokenParser AuthTokenParser) AuthMidInter {
 	}
 }
 
-func NewGinBearAuthMid(service string, tokenParser AuthTokenParser) AuthGinMidInter {
+func NewGinBearAuthMid(service string) AuthGinMidInter {
 	return &bearAuthMiddle{
 		service:  service,
-		parser:   tokenParser,
 		authMap:  make(map[string]uint8),
 		groupMap: make(map[string][]auth.UserPerm),
 	}
@@ -166,29 +165,26 @@ func (m *bearAuthMiddle) Handler() gin.HandlerFunc {
 				m.outputErr(c, apiErr.New(http.StatusUnauthorized, "invalid token: missing Bearer"))
 				return
 			}
-			authToken = authToken[7:]
-			result, err := m.parser(authToken)
-			if err != nil {
-				m.outputErr(c, apiErr.New(http.StatusUnauthorized, "invalid token: "+err.Error()))
+
+			u, ok := c.Get(string(auth.CtxUserInfoKey))
+			if !ok {
+				m.outputErr(c, apiErr.New(http.StatusBadRequest, "missing token"))
+				c.Abort()
 				return
 			}
+			reqUser := u.(auth.ReqUser)
+
 			host := util.GetHost(c.Request)
-			if result.Host() != host {
+			if reqUser.Host() != host {
 				m.outputErr(c, apiErr.New(http.StatusUnauthorized,
-					fmt.Sprintf("host not match: [%s] is not [%s]", result.Host(), host)))
+					fmt.Sprintf("host not match: [%s] is not [%s]", reqUser.Host(), host)))
 				return
 			}
-			if hasPerm := m.HasPerm(path, method, result.Perms()); !hasPerm {
+
+			if hasPerm := m.HasPerm(path, method, reqUser.GetPerm()); !hasPerm {
 				m.outputErr(c, apiErr.New(http.StatusUnauthorized, "permission error"))
 				return
 			}
-			c.Set(string(auth.CtxUserInfoKey), auth.NewReqUser(
-				result.Host(),
-				result.Sub(),
-				result.Account(),
-				result.Name(),
-				result.Perms(),
-			))
 		}
 		c.Next()
 	}
