@@ -24,11 +24,12 @@ type TokenParserResult interface {
 
 type AuthTokenParser func(token string) (TokenParserResult, error)
 
-func NewBearerAuthMid(tokenParser AuthTokenParser) AuthMidInter {
+func NewBearerAuthMid(tokenParser AuthTokenParser, isMatchHost bool) AuthMidInter {
 	return &bearAuthMiddle{
-		parser:   tokenParser,
-		authMap:  make(map[string]uint8),
-		groupMap: make(map[string][]auth.UserPerm),
+		parser:      tokenParser,
+		authMap:     make(map[string]uint8),
+		groupMap:    make(map[string][]auth.UserPerm),
+		isMatchHost: isMatchHost,
 	}
 }
 
@@ -45,11 +46,12 @@ func (lm *bearAuthMiddle) GetName() string {
 }
 
 type bearAuthMiddle struct {
-	service  string
-	parser   AuthTokenParser
-	log      log.Logger
-	authMap  map[string]uint8
-	groupMap map[string][]auth.UserPerm
+	service     string
+	parser      AuthTokenParser
+	log         log.Logger
+	authMap     map[string]uint8
+	groupMap    map[string][]auth.UserPerm
+	isMatchHost bool
 }
 
 const (
@@ -122,7 +124,7 @@ func (am *bearAuthMiddle) GetMiddleWare() func(f http.HandlerFunc) http.HandlerF
 					w.Write([]byte("invalid token: " + err.Error()))
 					return
 				}
-				if result.Host() != util.GetHost(r) {
+				if am.isMatchHost && result.Host() != util.GetHost(r) {
 					w.WriteHeader(http.StatusUnauthorized)
 					w.Write([]byte(fmt.Sprintf("host not match: [%s] is not [%s]", result.Host(), r.Host)))
 					return
