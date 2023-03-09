@@ -33,11 +33,12 @@ func NewBearerAuthMid(tokenParser AuthTokenParser, isMatchHost bool) AuthMidInte
 	}
 }
 
-func NewGinBearAuthMid(service string) AuthGinMidInter {
+func NewGinBearAuthMid(service string, isMatchHost bool) AuthGinMidInter {
 	return &bearAuthMiddle{
-		service:  service,
-		authMap:  make(map[string]uint8),
-		groupMap: make(map[string][]auth.UserPerm),
+		service:     service,
+		authMap:     make(map[string]uint8),
+		groupMap:    make(map[string][]auth.UserPerm),
+		isMatchHost: isMatchHost,
 	}
 }
 
@@ -177,7 +178,7 @@ func (m *bearAuthMiddle) Handler() gin.HandlerFunc {
 			reqUser := u.(auth.ReqUser)
 
 			host := util.GetHost(c.Request)
-			if reqUser.Host() != host {
+			if m.isMatchHost && reqUser.Host() != host {
 				m.outputErr(c, apiErr.New(http.StatusUnauthorized,
 					fmt.Sprintf("host not match: [%s] is not [%s]", reqUser.Host(), host)))
 				return
