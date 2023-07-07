@@ -9,7 +9,7 @@ import (
 
 	"github.com/94peter/sterna/util"
 
-	yaml "gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v3"
 )
 
 const (
