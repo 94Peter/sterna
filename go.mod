@@ -3,8 +3,8 @@ module github.com/94peter/sterna
 go 1.18
 
 require (
-	cloud.google.com/go/pubsub v1.16.0
-	cloud.google.com/go/storage v1.18.1
+	cloud.google.com/go/pubsub v1.17.1
+	cloud.google.com/go/storage v1.18.2
 	github.com/NaySoftware/go-fcm v0.0.0-20190516140123-808e978ddcd2
 	github.com/RichardKnop/machinery v1.10.6
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d

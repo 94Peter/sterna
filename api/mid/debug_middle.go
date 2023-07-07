@@ -74,6 +74,9 @@ func (m *debugMiddle) Handler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		fmt.Println("-------Request-------")
+		fmt.Println()
+		fmt.Println("remote IP: " + c.RemoteIP())
+		fmt.Println("client IP: " + c.ClientIP())
 		path := c.FullPath()
 		fmt.Println("full path: " + path)
 		path = fmt.Sprintf("%s,%s?%s", c.Request.Method, c.Request.URL.Path, c.Request.URL.RawQuery)
