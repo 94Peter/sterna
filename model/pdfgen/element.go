@@ -88,19 +88,14 @@ func (ele *LineElemnt) Generate(p pdf.PDF) error {
 
 type ImageElement struct {
 	*Element
-	Field    string    `json:"field"`
-	Font     string    `json:"font"`
-	FontSize int       `json:"fontSize"`
-	Color    pdf.Color `json:"color"`
-	Key      string    `json:"key"`
-	Perm     gcp.Perm  `json:"perm"`
-	X        float64   `json:"x"`
-	Y        float64   `json:"y"`
-	W        float64   `json:"width"`
-	H        float64   `json:"height"`
-	Alpha    float64   `json:"alpha"`
-	Spacing  float64   `json:"spacing"`
-	DSKey    string    `json:"dsKey"`
+	Key     string   `json:"key"`
+	Perm    gcp.Perm `json:"perm"`
+	X       float64  `json:"x"`
+	Y       float64  `json:"y"`
+	W       float64  `json:"width"`
+	H       float64  `json:"height"`
+	Alpha   float64  `json:"alpha"`
+	Spacing float64  `json:"spacing"`
 
 	ds  interface{}
 	sto gcp.Storage
@@ -111,26 +106,7 @@ func (ele *ImageElement) Generate(p pdf.PDF) error {
 	if ele.sto == nil {
 		return errors.New("not set storage")
 	}
-	if ele.DSKey == "" {
-		return errors.New("dsKey not set")
-	}
-	if data, ok := ele.ds.(map[string]interface{}); ok {
-		imgMap, ok := data[ele.DSKey].(map[string]string)
-		if !ok {
-			return errors.New("data source not found")
-		}
-		ele.Key, ok = imgMap[ele.Key]
-		if !ok {
-			return errors.New("image key not found: " + ele.Key)
-		}
-	}
-	textw, _ := p.MeasureTextWidth(ele.Field)
-	if ele.X == 0 {
-		ele.X = p.GetX()
-	}
-	if ele.Y == 0 {
-		ele.Y = p.GetY()
-	}
+
 	reader, err := ele.sto.OpenFile(ele.ctx, ele.Key, ele.Perm)
 	if err != nil {
 		return err
@@ -142,16 +118,8 @@ func (ele *ImageElement) Generate(p pdf.PDF) error {
 	if ele.Alpha <= 0 {
 		ele.Alpha = 1.0
 	}
-	p.ImageReader(imgH2, ele.X+textw, ele.Y, ele.W, ele.H, ele.Alpha)
-	moveY := (ele.H / 2) - float64(ele.FontSize/2)
-	p.SetY(ele.Y + moveY)
-	p.SetX(ele.X)
-	p.Text(ele.Field, pdf.TextStyle{
-		Font:     ele.Font,
-		FontSize: ele.FontSize,
-		Color:    ele.Color,
-	}, pdf.AlignLeft)
-	p.SetX(ele.X + textw + ele.W + ele.Spacing)
+	p.ImageReader(imgH2, ele.X, ele.Y, ele.W, ele.H, ele.Alpha)
+	p.SetX(ele.X + ele.W + ele.Spacing)
 	p.SetY(ele.Y)
 	return nil
 }
