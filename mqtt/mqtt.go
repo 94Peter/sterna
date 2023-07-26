@@ -191,7 +191,6 @@ func newDataResumeMqtt(mm *MqttConf, serviceID, clientID string, l log.Logger) M
 
 type basicMqttServImpl struct {
 	wg sync.WaitGroup
-	mu sync.Mutex
 
 	serviceID string
 	*MqttConf
