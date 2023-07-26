@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/94peter/sterna/log"
@@ -116,29 +118,46 @@ type MqttSubSerInter interface {
 	Handler(client mqtt.Client, msg mqtt.Message)
 }
 
-type MqttSubSerMap map[string]MqttSubSerInter
+type MqttSubSerMap struct {
+	subscribeMap map[string]byte
+	handlerMap   map[string]func(client mqtt.Client, message mqtt.Message)
+}
 
-func (mssl MqttSubSerMap) Add(mss MqttSubSerInter) {
-	if _, ok := mssl[mss.GetTopic()]; ok {
+func (mssl *MqttSubSerMap) Add(mss MqttSubSerInter) {
+	topic := mss.GetTopic()
+	handlerTopic := topic
+	if strings.Contains(topic, "$share") {
+		splitStrAry := strings.SplitN(topic, "/", 3)
+		if len(splitStrAry) != 3 {
+			return
+		}
+		handlerTopic = splitStrAry[2]
+	}
+	if mssl.subscribeMap == nil {
+		mssl.subscribeMap = make(map[string]byte)
+	}
+	if _, ok := mssl.subscribeMap[topic]; ok {
 		return
 	}
-	mssl[mss.GetTopic()] = mss
+
+	mssl.subscribeMap[topic] = mss.GetQos()
+
+	if mssl.handlerMap == nil {
+		mssl.handlerMap = make(map[string]func(client mqtt.Client, message mqtt.Message))
+	}
+	mssl.handlerMap[handlerTopic] = mss.Handler
 }
 
 func (mssl MqttSubSerMap) GetSubscribeMap() map[string]byte {
-	result := make(map[string]byte)
-	for k, m := range mssl {
-		result[k] = m.GetQos()
-	}
-	return result
+	return mssl.subscribeMap
 }
 
 func (mssl MqttSubSerMap) Handler(client mqtt.Client, message mqtt.Message) {
-	ser, ok := mssl[message.Topic()]
+	ser, ok := mssl.handlerMap[message.Topic()]
 	if !ok {
 		return
 	}
-	go ser.Handler(client, message)
+	go ser(client, message)
 }
 
 func newBasicMqtt(mm *MqttConf, serviceID string, l log.Logger) (MqttServ, error) {
@@ -171,6 +190,9 @@ func newDataResumeMqtt(mm *MqttConf, serviceID, clientID string, l log.Logger) M
 }
 
 type basicMqttServImpl struct {
+	wg sync.WaitGroup
+	mu sync.Mutex
+
 	serviceID string
 	*MqttConf
 	client      mqtt.Client
@@ -188,6 +210,7 @@ func (mm *basicMqttServImpl) onConnect(client mqtt.Client) {
 
 func (mm *basicMqttServImpl) onConnectLost(client mqtt.Client, err error) {
 	mm.log.Warn(fmt.Sprintf("mqtt service [%s] onconnectLost: %s", mm.serviceID, err.Error()))
+	mm.wg.Done()
 }
 
 func (mm *basicMqttServImpl) connect() error {
@@ -217,6 +240,7 @@ func (mm *basicMqttServImpl) connect() error {
 	opts.SetAutoReconnect(true)
 	opts.SetMaxReconnectInterval(time.Second * 10)
 	opts.SetConnectRetry(true)
+	opts.SetOrderMatters(false)
 	mqc := mqtt.NewClient(opts)
 	if token := mqc.Connect(); token.Wait() && token.Error() != nil {
 		mm.log.Warn(fmt.Sprintf("mqtt service [%s] reconnect failed: %s", mm.serviceID, token.Error().Error()))
@@ -244,25 +268,31 @@ func (mm *basicMqttServImpl) Publish(topics []string, message map[string]interfa
 }
 
 func (mm *basicMqttServImpl) SubscribeMultiple(mssm MqttSubSerMap) error {
-	for mm.client == nil {
-		time.Sleep(time.Second * 10)
-		return mm.SubscribeMultiple(mssm)
+	if mm.client == nil {
+		return errors.New("mqtt client is nil")
 	}
-	if token := mm.client.SubscribeMultiple(mssm.GetSubscribeMap(), mssm.Handler); token.Wait() && token.Error() != nil {
+	subMap := mssm.GetSubscribeMap()
+	if len(subMap) == 0 {
+		return errors.New("submap is empty")
+	}
+	token := mm.client.SubscribeMultiple(subMap, mssm.Handler)
+	if token.Error() != nil {
 		return token.Error()
 	}
-
+	mm.wg.Add(1)
+	mm.wg.Wait()
 	return nil
 }
 
 func (mm *basicMqttServImpl) Subcribe(mssi MqttSubSerInter) error {
-	for mm.client == nil {
-		time.Sleep(time.Second * 10)
-		return mm.Subcribe(mssi)
+	if mm.client == nil {
+		return errors.New("mqtt client is nil")
 	}
 	if token := mm.client.Subscribe(mssi.GetTopic(), mssi.GetQos(), mssi.Handler); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
+	mm.wg.Add(1)
+	mm.wg.Wait()
 	return nil
 }
 
