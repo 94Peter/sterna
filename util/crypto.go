@@ -47,7 +47,6 @@ func pemBlockForKey(priv interface{}) *pem.Block {
 	case *rsa.PrivateKey:
 		return &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(k)}
 	case crypto.PublicKey:
-		fmt.Println("public key")
 		asn1Bytes, err := x509.MarshalPKIXPublicKey(k)
 		if err != nil {
 			fmt.Println(err.Error())
