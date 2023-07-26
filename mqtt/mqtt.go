@@ -248,10 +248,30 @@ func (mm *basicMqttServImpl) connect() error {
 	return nil
 }
 
+func (mm *basicMqttServImpl) waitClient() bool {
+	if mm.client != nil {
+		return true
+	}
+	result := make(chan (bool))
+	go func(r chan (bool)) {
+		count := 0
+		for {
+			count++
+			if mm.client != nil {
+				r <- true
+			}
+			if count == 5 {
+				r <- false
+			}
+			time.Sleep(time.Second)
+		}
+	}(result)
+	return <-result
+}
+
 func (mm *basicMqttServImpl) PublishByte(topics []string, data []byte, retain bool) (err error) {
-	for mm.client == nil {
-		time.Sleep(time.Second * 10)
-		return mm.PublishByte(topics, data, retain)
+	if !mm.waitClient() {
+		return errors.New("mqtt client is nil")
 	}
 	for _, topic := range topics {
 		if token := mm.client.Publish(topic, 1, retain, data); token.WaitTimeout(time.Second*2) && token.Error() != nil {
@@ -267,7 +287,7 @@ func (mm *basicMqttServImpl) Publish(topics []string, message map[string]interfa
 }
 
 func (mm *basicMqttServImpl) SubscribeMultiple(mssm MqttSubSerMap) error {
-	if mm.client == nil {
+	if !mm.waitClient() {
 		return errors.New("mqtt client is nil")
 	}
 	subMap := mssm.GetSubscribeMap()
@@ -284,7 +304,7 @@ func (mm *basicMqttServImpl) SubscribeMultiple(mssm MqttSubSerMap) error {
 }
 
 func (mm *basicMqttServImpl) Subcribe(mssi MqttSubSerInter) error {
-	if mm.client == nil {
+	if !mm.waitClient() {
 		return errors.New("mqtt client is nil")
 	}
 	if token := mm.client.Subscribe(mssi.GetTopic(), mssi.GetQos(), mssi.Handler); token.Wait() && token.Error() != nil {
