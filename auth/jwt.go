@@ -127,7 +127,9 @@ func (j *JwtConf) GetToken(host string, data map[string]interface{}, exp uint8) 
 	now := time.Now()
 	data["iss"] = host
 	data["iat"] = now.Unix()
-	data["exp"] = now.Add(time.Duration(exp) * time.Minute).Unix()
+	if exp > 0 {
+		data["exp"] = now.Add(time.Duration(exp) * time.Minute).Unix()
+	}
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims(data))
 
 	token.Header = j.getHeader()
