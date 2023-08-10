@@ -13,6 +13,7 @@ type JwtToken interface {
 	GetTokenWithoutExpired(host string, data map[string]interface{}) (*string, error)
 	GetToken(host string, data map[string]interface{}, exp uint8) (*string, error)
 	ParseToken(tokenStr string) (*jwt.Token, error)
+	ParseTokenUnValidate(tokenStr string) (*jwt.Token, error)
 	// 對特定資源存取金鑰
 	GetJwtAccessToken(host string, source string, id interface{}, db string, perm UserPerm) (*string, error)
 	GetCompanyToken(host, compID, compName, userID, acc, userName string, perm UserPerm) (*string, error)
@@ -85,6 +86,35 @@ func (j *JwtConf) NewJwt() JwtToken {
 	return j
 }
 
+func (j *JwtConf) ParseTokenUnValidate(tokenStr string) (*jwt.Token, error) {
+	if j == nil {
+		return nil, errors.New("jwtConf is nil")
+	}
+	parser := jwt.Parser{
+		SkipClaimsValidation: true,
+	}
+
+	token, err := parser.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		pk, err := j.getPublicKey()
+		return pk, err
+	})
+	if token == nil {
+		return nil, errors.New("token is nil")
+	}
+	if token.Valid {
+		return token, nil
+	} else if ve, ok := err.(*jwt.ValidationError); ok {
+		if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+			return nil, errors.New("That's not even a token")
+		} else if ve.Errors&(jwt.ValidationErrorExpired|jwt.ValidationErrorNotValidYet) != 0 {
+			// Token is either expired or not active yet
+			return nil, errors.New("Timing is everything")
+		} else {
+			return nil, err
+		}
+	}
+	return nil, err
+}
 func (j *JwtConf) ParseToken(tokenStr string) (*jwt.Token, error) {
 	if j == nil {
 		return nil, errors.New("jwtConf is nil")
