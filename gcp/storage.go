@@ -3,6 +3,7 @@ package gcp
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,7 +13,9 @@ import (
 	"github.com/94peter/sterna/util"
 
 	"cloud.google.com/go/storage"
+	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/option"
 )
 
@@ -27,11 +30,13 @@ const (
 type Storage interface {
 	GetAttr(ctx context.Context, key string, pm Perm) (*storage.ObjectAttrs, error)
 	RemoveObject(ctx context.Context, key string, pm Perm) error
+	GetDownloadUrl(ctx context.Context, key string, p Perm) (myurl string, err error)
 	GetPublicUrl(ctx context.Context, object string) (myurl string, err error)
 	WriteString(ctx context.Context, key string, content string, pm Perm) error
 	Write(ctx context.Context, key string, pm Perm, writeData func(w io.Writer) error) (path string, err error)
 	OpenFile(ctx context.Context, key string, pm Perm) (io.Reader, error)
 	SignedURL(key string, contentType string, pm Perm, expDuration time.Duration) (url string, err error)
+	GetAccessToken() (*oauth2.Token, error)
 }
 
 type GcpConf struct {
@@ -173,6 +178,10 @@ func (gcp *GcpConf) GetAttr(ctx context.Context, key string, pm Perm) (*storage.
 }
 
 func (gcp *GcpConf) GetPublicUrl(ctx context.Context, key string) (myurl string, err error) {
+	return gcp.GetDownloadUrl(ctx, key, PermPublic)
+}
+
+func (gcp *GcpConf) GetDownloadUrl(ctx context.Context, key string, p Perm) (myurl string, err error) {
 	client, err := gcp.getClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("storage.NewClient: %v", err)
@@ -182,7 +191,9 @@ func (gcp *GcpConf) GetPublicUrl(ctx context.Context, key string) (myurl string,
 
 	ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 	defer cancel()
-	objectHandle := client.Bucket(gcp.PublicBucket).Object(key)
+
+	bucket := gcp.getBucket(p)
+	objectHandle := client.Bucket(bucket).Object(key)
 	attrs, err := objectHandle.Attrs(ctx)
 	if err != nil {
 		return
@@ -192,7 +203,7 @@ func (gcp *GcpConf) GetPublicUrl(ctx context.Context, key string) (myurl string,
 	if err != nil {
 		return
 	}
-	rel, err := u.Parse(util.StrAppend("/", gcp.PublicBucket, "/", key))
+	rel, err := u.Parse(util.StrAppend("/", bucket, "/", key))
 	if err != nil {
 		return
 	}
@@ -231,4 +242,29 @@ func (gcp *GcpConf) SignedURL(key string, contentType string, pm Perm, expDurati
 			ContentType:    contentType,
 		})
 	return
+}
+
+func (gcp *GcpConf) GetAccessToken() (*oauth2.Token, error) {
+	b, err := ioutil.ReadFile(gcp.CredentialsFile)
+	if err != nil {
+		return nil, err
+	}
+	var c = struct {
+		Email      string `json:"client_email"`
+		PrivateKey string `json:"private_key"`
+	}{}
+	json.Unmarshal(b, &c)
+	config := &jwt.Config{
+		Email:      c.Email,
+		PrivateKey: []byte(c.PrivateKey),
+		Scopes: []string{
+			"https://www.googleapis.com/auth/devstorage.read_only",
+		},
+		TokenURL: google.JWTTokenURL,
+	}
+	token, err := config.TokenSource(oauth2.NoContext).Token()
+	if err != nil {
+		return nil, err
+	}
+	return token, nil
 }

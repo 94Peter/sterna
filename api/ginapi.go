@@ -31,6 +31,7 @@ type GinApiServer interface {
 	AddAPIs(handlers ...GinAPI) GinApiServer
 	Middles(mids ...mid.GinMiddle) GinApiServer
 	SetAuth(authmid mid.AuthGinMidInter) GinApiServer
+	SetTrustedProxies([]string) GinApiServer
 	Run(port string) error
 }
 
@@ -74,10 +75,16 @@ func (serv *apiService) AddAPIs(apis ...GinAPI) GinApiServer {
 	return serv
 }
 
+func (serv *apiService) SetTrustedProxies(proxies []string) GinApiServer {
+	if len(proxies) == 0 {
+		return serv
+	}
+	serv.Engine.ForwardedByClientIP = true
+	serv.Engine.SetTrustedProxies(proxies)
+	return serv
+}
+
 func (serv *apiService) Run(port string) error {
-	// if serv.authMid != nil {
-	// 	serv.Engine.Use(serv.authMid.Handler())
-	// }
 	return serv.Engine.Run(":" + port)
 }
 
