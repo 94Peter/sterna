@@ -62,3 +62,8 @@ func GetDiByCtx(ctx context.Context) interface{} {
 	diInter := ctx.Value(CtxServDiKey)
 	return diInter
 }
+
+type CommonDI interface {
+	GetServiceName() string
+	IsConfEmpty() bool
+}
