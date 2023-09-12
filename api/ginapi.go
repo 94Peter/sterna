@@ -32,12 +32,18 @@ type GinApiServer interface {
 	Middles(mids ...mid.GinMiddle) GinApiServer
 	SetAuth(authmid mid.AuthGinMidInter) GinApiServer
 	SetTrustedProxies([]string) GinApiServer
+	Static(relativePath, root string) GinApiServer
 	Run(port string) error
 }
 
 type apiService struct {
 	*gin.Engine
 	authMid mid.AuthGinMidInter
+}
+
+func (serv *apiService) Static(relativePath, root string) GinApiServer {
+	serv.Engine.Static(relativePath, root)
+	return serv
 }
 
 func (serv *apiService) SetAuth(authMid mid.AuthGinMidInter) GinApiServer {
