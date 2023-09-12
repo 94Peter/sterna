@@ -10,15 +10,15 @@ import (
 )
 
 type ConfigDI interface {
-	NewWriter(ctx context.Context, topic string) Writer
-	NewReader(ctx context.Context, groupID, topic string, l log.Logger) Reader
+	NewKafkaWriter(ctx context.Context, topic string) Writer
+	NewKafkaReader(ctx context.Context, groupID, topic string, l log.Logger) Reader
 }
 
-type Config struct {
+type KafkaConfig struct {
 	Brokers []string
 }
 
-func (c *Config) NewWriter(ctx context.Context, topic string) Writer {
+func (c *KafkaConfig) NewKafkaWriter(ctx context.Context, topic string) Writer {
 	return &writerImpl{
 		ctx: ctx,
 		kafka: &kafka.Writer{
@@ -59,7 +59,7 @@ type Reader interface {
 	Close() error
 }
 
-func (c *Config) NewReader(ctx context.Context, groupID, topic string, l log.Logger) Reader {
+func (c *KafkaConfig) NewKafkaReader(ctx context.Context, groupID, topic string, l log.Logger) Reader {
 	dial := kafka.DefaultDialer
 	hostname, _ := os.Hostname()
 	dial.ClientID = "kafka@" + hostname
