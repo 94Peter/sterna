@@ -62,6 +62,7 @@ type RedisClient interface {
 	Exists(key string) bool
 	Expired(key string, d time.Duration) (bool, error)
 	NewPiple() CachePipel
+	Keys(pattern string) ([]string, error)
 }
 
 type CachePipel interface {
@@ -73,6 +74,10 @@ type redisV8CltImpl struct {
 	clt *redis.Client
 	ctx context.Context
 	db  int
+}
+
+func (rci *redisV8CltImpl) Keys(pattern string) ([]string, error) {
+	return rci.clt.Keys(rci.ctx, pattern).Result()
 }
 
 func (rci *redisV8CltImpl) Get(key string) ([]byte, error) {

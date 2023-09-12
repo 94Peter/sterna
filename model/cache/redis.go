@@ -10,7 +10,7 @@ import (
 )
 
 type Cache interface {
-	SaveObj(key string, i dao.CacheObj, exp time.Duration) error
+	SaveObj(i dao.CacheObj, exp time.Duration) error
 	GetObj(key string, i dao.CacheObj) error
 	GetObjs(keys []string, d dao.CacheObj) (objs []dao.CacheObj, err error)
 }
@@ -25,13 +25,13 @@ type redisCache struct {
 	db.RedisClient
 }
 
-func (c *redisCache) SaveObj(key string, i dao.CacheObj, exp time.Duration) error {
+func (c *redisCache) SaveObj(i dao.CacheObj, exp time.Duration) error {
 
 	b, err := i.Encode()
 	if err != nil {
 		return err
 	}
-	_, err = c.Set(key, b, exp)
+	_, err = c.Set(i.GetKey(), b, exp)
 	return err
 }
 

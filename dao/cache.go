@@ -9,6 +9,7 @@ import (
 )
 
 type CacheObj interface {
+	GetKey() string
 	Encode() ([]byte, error)
 	SetStringCmd(sc *redis.StringCmd)
 	Decode([]byte) error
