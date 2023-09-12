@@ -82,8 +82,7 @@ func (m *dbMiddle) Handler() gin.HandlerFunc {
 
 		servDi, ok := c.Get(string(sterna.CtxServDiKey))
 		if !ok || servDi == nil {
-			m.outputErr(c, apiErr.New(http.StatusInternalServerError, "can not get di"))
-			c.Abort()
+			c.Next()
 			return
 		}
 
