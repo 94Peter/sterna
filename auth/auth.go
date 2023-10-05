@@ -10,6 +10,7 @@ import (
 
 	"github.com/94peter/sterna/dao"
 	"github.com/94peter/sterna/util"
+	"github.com/gin-gonic/gin"
 )
 
 type UserPerm string
@@ -337,6 +338,14 @@ func (ru *guestUser) Decode(data string) error {
 
 func GetUserInfo(req *http.Request) ReqUser {
 	return GetUserInfoByCtx(req.Context())
+}
+
+func GetUserByGin(c *gin.Context) ReqUser {
+	u, ok := c.Get(string(CtxUserInfoKey))
+	if !ok {
+		return nil
+	}
+	return u.(ReqUser)
 }
 
 func GetUserInfoByCtx(ctx context.Context) ReqUser {

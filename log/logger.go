@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/94peter/sterna/util"
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -50,6 +51,14 @@ func GetLogByCtx(ctx context.Context) Logger {
 		return clt
 	}
 	return nil
+}
+
+func GetLogByGin(c *gin.Context) Logger {
+	l, ok := c.Get(string(CtxLogKey))
+	if !ok {
+		return nil
+	}
+	return l.(Logger)
 }
 
 type Logger interface {

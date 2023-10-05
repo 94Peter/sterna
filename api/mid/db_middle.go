@@ -17,7 +17,6 @@ import (
 type DBMidDI interface {
 	log.LoggerDI
 	db.MongoDI
-	db.RedisDI
 }
 
 type DBMiddle string

@@ -2,8 +2,10 @@ package kafka
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/94peter/sterna/log"
 	"github.com/segmentio/kafka-go"
@@ -30,7 +32,7 @@ func (c *KafkaConfig) NewKafkaWriter(ctx context.Context, topic string) Writer {
 }
 
 type Writer interface {
-	Message(msg []byte) error
+	Message(headers map[string][]byte, msg []byte) error
 	Close() error
 }
 
@@ -39,9 +41,17 @@ type writerImpl struct {
 	kafka *kafka.Writer
 }
 
-func (wi *writerImpl) Message(msg []byte) error {
+func (wi *writerImpl) Message(headers map[string][]byte, msg []byte) error {
+	var myheaders []kafka.Header
+	for k, v := range headers {
+		myheaders = append(myheaders, kafka.Header{
+			Key:   k,
+			Value: v,
+		})
+	}
 	m := kafka.Message{
-		Value: msg,
+		Value:   msg,
+		Headers: myheaders,
 	}
 	err := wi.kafka.WriteMessages(wi.ctx, m)
 	if err != nil {
@@ -55,7 +65,8 @@ func (wi *writerImpl) Close() error {
 }
 
 type Reader interface {
-	Read() ([]byte, error)
+	Read() (map[string]string, []byte, error)
+	ReadHandler(handler ReaderHandler) error
 	Close() error
 }
 
@@ -83,15 +94,57 @@ type readerImpl struct {
 	log   log.Logger
 }
 
-func (ri *readerImpl) Read() ([]byte, error) {
+type ReaderHandler func(headers map[string]string, data []byte) error
+
+func (ri *readerImpl) Read() (map[string]string, []byte, error) {
 	m, err := ri.kafka.ReadMessage(ri.ctx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if ri.log != nil {
 		ri.log.Debug(fmt.Sprintf("message at topic: %v partition: %v offset: %v value: %s\n", m.Topic, m.Partition, m.Offset, string(m.Value)))
 	}
-	return m.Value, nil
+	var headers map[string]string
+	if len(m.Headers) > 0 {
+		headers = map[string]string{}
+		for _, h := range m.Headers {
+			headers[h.Key] = string(h.Value)
+		}
+	}
+	return headers, m.Value, nil
+}
+
+const waitingTime = time.Second * 5
+const maxRetriedTimes = 5
+
+func (ri *readerImpl) ReadHandler(handler ReaderHandler) error {
+	m, err := ri.kafka.FetchMessage(ri.ctx)
+	if err != nil {
+		return errors.New("fetch message fail: " + err.Error())
+	}
+	var headers map[string]string
+	if len(m.Headers) > 0 {
+		headers = map[string]string{}
+		for _, h := range m.Headers {
+			headers[h.Key] = string(h.Value)
+		}
+	}
+	retriedTimes := 0
+	for err = handler(headers, m.Value); err != nil; err = handler(headers, m.Value) {
+		ri.log.Warn("halder data fail: " + err.Error())
+		ri.log.Info("waiting for 5 secs to retry")
+		retriedTimes++
+		if retriedTimes >= maxRetriedTimes {
+			return err
+		}
+		time.Sleep(waitingTime)
+	}
+
+	if err = ri.kafka.CommitMessages(ri.ctx, m); err != nil {
+		return errors.New("commit messages fail: " + err.Error())
+	}
+
+	return nil
 }
 
 func (ri *readerImpl) Close() error {

@@ -15,15 +15,15 @@ type PushServ interface {
 }
 
 type FcmConf struct {
-	ServerKey string   `yaml:"fcmServerKey"`
-	Enable    bool     `yaml:"enable"`
-	Platform  []string `yaml:"platform"`
+	ServerKey string `yaml:"fcmServerKey"`
+	Enable    bool   `yaml:"enable"`
 }
 
 func (conf *FcmConf) NewPushServ() (PushServ, error) {
 	if conf == nil || !conf.Enable {
 		return nil, errors.New("not enable push")
 	}
+
 	c := fcm.NewFcmClient(conf.ServerKey)
 	return &fcmImpl{
 		FcmClient: c,
@@ -51,6 +51,7 @@ func (f *fcmImpl) Push(tokens []string, title, body string, data map[string]inte
 	f.AppendDevices(tokens)
 
 	f.SetMsgData(data)
+
 	r, err := f.Send()
 
 	if err != nil {

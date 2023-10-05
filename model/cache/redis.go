@@ -49,15 +49,17 @@ func (c *redisCache) GetObj(key string, i dao.CacheObj) error {
 
 func (c *redisCache) GetObjs(keys []string, d dao.CacheObj) (objs []dao.CacheObj, err error) {
 	var sliceList []dao.CacheObj
-	val := reflect.ValueOf(d)
-	if val.Kind() == reflect.Ptr {
-		val = reflect.Indirect(val)
+
+	objType := reflect.TypeOf(d)
+	if objType.Kind() == reflect.Ptr {
+		objType = objType.Elem()
 	}
+
 	var newValue reflect.Value
 	var newDoc dao.CacheObj
 	pipe := c.NewPiple()
 	for _, k := range keys {
-		newValue = reflect.New(val.Type())
+		newValue = reflect.New(objType)
 		newDoc = newValue.Interface().(dao.CacheObj)
 		newDoc.SetStringCmd(pipe.Get(k))
 		sliceList = append(sliceList, newDoc)

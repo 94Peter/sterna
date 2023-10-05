@@ -30,7 +30,6 @@ func InitConfByByte(b []byte, di interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	util.InitValidator()
 }
 
 // 初始化設定檔，讀YAML檔
@@ -66,4 +65,10 @@ func GetDiByCtx(ctx context.Context) interface{} {
 type CommonDI interface {
 	GetServiceName() string
 	IsConfEmpty() bool
+}
+
+type ChannelDI interface {
+	CommonDI
+	GetChannel() string
+	SetChannel(string)
 }

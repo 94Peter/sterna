@@ -219,10 +219,12 @@ func (mm *mgoModelImpl) BatchUpdate(doclist []dao.DocInter, getField func(d dao.
 	var operations []mongo.WriteModel
 	for _, d := range doclist {
 		op := mongo.NewUpdateOneModel()
+
 		op.SetFilter(bson.M{"_id": d.GetID()})
 		op.SetUpdate(bson.D{
 			{Key: "$set", Value: getField(d)},
 		})
+		op.SetUpsert(true)
 		operations = append(operations, op)
 	}
 	bulkOption := options.BulkWriteOptions{}

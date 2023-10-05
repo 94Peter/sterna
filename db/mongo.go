@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/94peter/sterna/util"
+	"github.com/gin-gonic/gin"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -33,10 +34,19 @@ func GetMgoDBClientByCtx(ctx context.Context) MongoDBClient {
 	return nil
 }
 
+func GetMgoDBClientByGin(c *gin.Context) MongoDBClient {
+	clt, ok := c.Get(string(CtxMongoKey))
+	if !ok {
+		return nil
+	}
+	return clt.(MongoDBClient)
+}
+
 type MongoDI interface {
 	NewMongoDBClient(ctx context.Context, userDB string) (MongoDBClient, error)
 	SetAuth(user, pwd string)
 	GetUri() string
+	GetDb() string
 }
 
 type MongoConf struct {
@@ -53,6 +63,10 @@ type MongoConf struct {
 func (mc *MongoConf) SetAuth(user, pwd string) {
 	mc.authUri = strings.Replace(mc.Uri, "{User}", user, 1)
 	mc.authUri = strings.Replace(mc.authUri, "{Pwd}", pwd, 1)
+}
+
+func (mc *MongoConf) GetDb() string {
+	return mc.DefaultDB
 }
 
 func (mc *MongoConf) GetUri() string {
