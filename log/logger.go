@@ -74,13 +74,22 @@ type LoggerDI interface {
 }
 
 type LoggerConf struct {
-	Level  string `yaml:"level"`
-	Target string `yaml:"target"`
+	Level     string     `yaml:"-"`
+	Target    string     `yaml:"-"`
+	FluentLog *fluentLog `yaml:"fluent,omitempty"`
 }
 
 func (lc *LoggerConf) NewLogger(key string) Logger {
 	if lc == nil {
 		panic("log not set")
+	}
+	lc.Level = os.Getenv("LOG_LEVEL")
+	if lc.Level == "" {
+		lc.Level = "info"
+	}
+	lc.Target = os.Getenv("LOG_TARGET")
+	if lc.Target == "" {
+		lc.Target = LogTargetOS
 	}
 	level, ok := levelMap[lc.Level]
 	if !ok {
@@ -91,6 +100,12 @@ func (lc *LoggerConf) NewLogger(key string) Logger {
 	var out io.Writer
 
 	switch lc.Target {
+	case LogTargetFluent:
+		if lc.FluentLog == nil {
+			panic("log fluent not set")
+		}
+		lc.FluentLog.service = key
+		out = lc.FluentLog
 	default:
 		out = os.Stdout
 	}
