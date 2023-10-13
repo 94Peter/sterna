@@ -64,7 +64,7 @@ func GetDiByCtx(ctx context.Context) interface{} {
 
 type CommonDI interface {
 	GetServiceName() string
-	IsConfEmpty() bool
+	IsConfEmpty() error
 }
 
 type ChannelDI interface {
