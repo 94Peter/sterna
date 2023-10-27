@@ -32,6 +32,7 @@ func (c *KafkaConfig) NewKafkaWriter(ctx context.Context, topic string) Writer {
 }
 
 type Writer interface {
+	SetLog(log.Logger)
 	Message(headers map[string][]byte, msg []byte) error
 	Close() error
 }
@@ -39,6 +40,11 @@ type Writer interface {
 type writerImpl struct {
 	ctx   context.Context
 	kafka *kafka.Writer
+	l     log.Logger
+}
+
+func (wi *writerImpl) SetLog(l log.Logger) {
+	wi.l = l
 }
 
 func (wi *writerImpl) Message(headers map[string][]byte, msg []byte) error {
@@ -52,6 +58,11 @@ func (wi *writerImpl) Message(headers map[string][]byte, msg []byte) error {
 	m := kafka.Message{
 		Value:   msg,
 		Headers: myheaders,
+	}
+	if wi.l != nil {
+		wi.l.Info(fmt.Sprintf(
+			"write kafka topic [%s], header [%v] message: %s",
+			wi.kafka.Topic, myheaders, string(msg)))
 	}
 	err := wi.kafka.WriteMessages(wi.ctx, m)
 	if err != nil {
