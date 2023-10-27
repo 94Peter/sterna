@@ -88,6 +88,9 @@ func (c *redisCache) SaveObjHash(i dao.CacheMapObj, exp time.Duration) error {
 	if err != nil {
 		return fmt.Errorf("set hash error: %w", err)
 	}
+	if exp <= 0 {
+		return nil
+	}
 	_, err = c.RedisClient.Expired(i.GetKey(), exp)
 	if err != nil {
 		return fmt.Errorf("set expired fail: %w", err)
