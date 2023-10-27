@@ -21,7 +21,7 @@ import (
 
 type MgoAggregate interface {
 	GetPipeline(q bson.M) mongo.Pipeline
-	GetC() string
+	dao.Collection
 }
 
 type MgoDBModel interface {
@@ -53,13 +53,15 @@ type MgoDBModel interface {
 	) error
 	PagePipeFind(aggr MgoAggregate, filter bson.M, sort bson.M, limit, page int64) (interface{}, error)
 	PageFind(d dao.DocInter, q bson.M, limit, page int64, opts ...*options.FindOptions) (interface{}, error)
-	CountDocuments(d dao.DocInter, q bson.M) (int64, error)
-	GetPaginationSource(d dao.DocInter, q bson.M, opts ...*options.FindOptions) util.PaginationSource
-	CreateCollection(dlist ...dao.DocInter) error
 
-	//Reference to customer code, use for aggregate pagination
-	AggrCountDocuments(aggr MgoAggregate, q bson.M) (int64, error)
+	CountDocuments(d dao.Collection, q bson.M) (int64, error)
+	GetPaginationSource(d dao.DocInter, q bson.M, opts ...*options.FindOptions) util.PaginationSource
 	GetPipePaginationSource(aggr MgoAggregate, q bson.M, sort bson.M) util.PaginationSource
+
+	CreateCollection(dlist ...dao.DocInter) error
+	//Reference to customer code, use for aggregate pagination
+	CountAggrDocuments(aggr MgoAggregate, q bson.M) (int64, error)
+	GetPipeMatchPaginationSource(aggr MgoAggregate, q bson.M, sort bson.M) util.PaginationSource
 
 	NewFindMgoDS(d dao.DocInter, q bson.M, opts ...*options.FindOptions) MgoDS
 	NewPipeFindMgoDS(d MgoAggregate, q bson.M, opts ...*options.AggregateOptions) MgoDS
@@ -121,8 +123,7 @@ type mgoModelImpl struct {
 	log                    log.Logger
 	ctx                    context.Context
 
-	selfCtx       context.Context
-	indexExistMap map[string]bool
+	selfCtx context.Context
 }
 
 func (mm *mgoModelImpl) DisableCheckBeforeSave(b bool) {
@@ -173,7 +174,7 @@ func (mm *mgoModelImpl) FindAndExec(
 	return err
 }
 
-func (mm *mgoModelImpl) CountDocuments(d dao.DocInter, q bson.M) (int64, error) {
+func (mm *mgoModelImpl) CountDocuments(d dao.Collection, q bson.M) (int64, error) {
 	opts := options.Count().SetMaxTime(2 * time.Second)
 	return mm.db.Collection(d.GetC()).CountDocuments(mm.ctx, q, opts)
 }
@@ -181,10 +182,7 @@ func (mm *mgoModelImpl) CountDocuments(d dao.DocInter, q bson.M) (int64, error) 
 func (mm *mgoModelImpl) isCollectExisted(d dao.DocInter) bool {
 	names, err := mm.db.ListCollectionNames(mm.selfCtx, bson.D{{Key: "name", Value: d.GetC()}})
 	if ce, ok := err.(mongo.CommandError); ok {
-		if ce.Name == "OperationNotSupportedInTransaction" {
-			return true
-		}
-		return false
+		return ce.Name == "OperationNotSupportedInTransaction"
 	}
 
 	return util.IsStrInList(d.GetC(), names...)
@@ -510,73 +508,30 @@ func (mm *mgoModelImpl) PagePipeFind(aggr MgoAggregate, filter bson.M, sort bson
 	return slice, err
 }
 
-func (mm *mgoModelImpl) GetPaginationSource(d dao.DocInter, q bson.M, opts ...*options.FindOptions) util.PaginationSource {
-	return &mongoPaginationImpl{
-		MgoDBModel: mm,
-		d:          d,
-		q:          q,
-		findOpts:   opts,
-	}
-}
-
-type mongoPaginationImpl struct {
-	MgoDBModel
-	d        dao.DocInter
-	q        bson.M
-	findOpts []*options.FindOptions
-}
-
-func (mpi *mongoPaginationImpl) Count() (int64, error) {
-	return mpi.CountDocuments(mpi.d, mpi.q)
-}
-
-func (mpi *mongoPaginationImpl) Data(limit, p int64, format func(i interface{}) map[string]interface{}) ([]map[string]interface{}, error) {
-	result, err := mpi.PageFind(mpi.d, mpi.q, limit, p, mpi.findOpts...)
-	if err != nil {
-		return nil, err
-	}
-	formatResult, l := dao.Format(result, format)
-	if l == 0 {
-		return nil, nil
-	}
-	return formatResult.([]map[string]interface{}), nil
-}
-
 // ----- New added code -----
-
-func (mm *mgoModelImpl) GetPipePaginationSource(aggr MgoAggregate, q bson.M, sort bson.M) util.PaginationSource {
-	return &mongoPipePaginationImpl{
-		MgoDBModel: mm,
-		a:          aggr,
-		q:          q,
-		sort:       sort,
-	}
-}
 
 func (mm *mgoModelImpl) AggrCountDocuments(aggr MgoAggregate, q bson.M) (int64, error) {
 	opts := options.Count().SetMaxTime(2 * time.Second)
 	return mm.db.Collection(aggr.GetC()).CountDocuments(mm.ctx, q, opts)
 }
 
-type mongoPipePaginationImpl struct {
-	MgoDBModel
-	a    MgoAggregate
-	q    bson.M
-	sort bson.M
+type countMgoAggregate struct {
+	Count int
 }
 
-func (mpi *mongoPipePaginationImpl) Count() (int64, error) {
-	return mpi.AggrCountDocuments(mpi.a, mpi.q)
-}
-
-func (mpi *mongoPipePaginationImpl) Data(limit, p int64, format func(i interface{}) map[string]interface{}) ([]map[string]interface{}, error) {
-	result, err := mpi.PagePipeFind(mpi.a, mpi.q, mpi.sort, limit, p)
+func (mm *mgoModelImpl) CountAggrDocuments(aggr MgoAggregate, q bson.M) (int64, error) {
+	collection := mm.db.Collection(aggr.GetC())
+	pl := append(aggr.GetPipeline(q), bson.D{{Key: "$count", Value: "count"}})
+	sortCursor, err := collection.Aggregate(mm.ctx, pl)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	formatResult, l := dao.Format(result, format)
-	if l == 0 {
-		return nil, nil
+	var obj countMgoAggregate
+	if sortCursor.Next(mm.ctx) {
+		err = sortCursor.Decode(&obj)
+		if err != nil {
+			return 0, err
+		}
 	}
-	return formatResult.([]map[string]interface{}), nil
+	return int64(obj.Count), nil
 }

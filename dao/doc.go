@@ -14,8 +14,12 @@ type LogUser interface {
 	GetAccount() string
 }
 
-type DocInter interface {
+type Collection interface {
 	GetC() string
+}
+
+type DocInter interface {
+	Collection
 	GetDoc() interface{}
 	GetID() interface{}
 	SetCreator(u LogUser)
