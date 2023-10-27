@@ -67,3 +67,9 @@ func (t *ComCacheObj) DecodePipe(obj CacheObj) error {
 	}
 	return obj.Decode([]byte(js))
 }
+
+type CacheMapObj interface {
+	GetKey() string
+	EncodeMap() (map[string]string, error)
+	DecodeMap(map[string]string) error
+}

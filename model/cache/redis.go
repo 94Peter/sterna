@@ -2,6 +2,7 @@ package cache
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -13,6 +14,8 @@ type Cache interface {
 	SaveObj(i dao.CacheObj, exp time.Duration) error
 	GetObj(key string, i dao.CacheObj) error
 	GetObjs(keys []string, d dao.CacheObj) (objs []dao.CacheObj, err error)
+	SaveObjHash(i dao.CacheMapObj, exp time.Duration) error
+	GetObjHash(key string, i dao.CacheMapObj) error
 }
 
 func NewRedisCache(clt db.RedisClient) Cache {
@@ -71,4 +74,28 @@ func (c *redisCache) GetObjs(keys []string, d dao.CacheObj) (objs []dao.CacheObj
 		}
 	}
 	return sliceList, nil
+}
+
+func (c *redisCache) SaveObjHash(i dao.CacheMapObj, exp time.Duration) error {
+	data, err := i.EncodeMap()
+	if err != nil {
+		return err
+	}
+	if len(data) == 0 {
+		return nil
+	}
+	err = c.RedisClient.HSet(i.GetKey(), data)
+	if err != nil {
+		return fmt.Errorf("set hash error: %w", err)
+	}
+	_, err = c.RedisClient.Expired(i.GetKey(), exp)
+	if err != nil {
+		return fmt.Errorf("set expired fail: %w", err)
+	}
+	return nil
+}
+
+func (c *redisCache) GetObjHash(key string, i dao.CacheMapObj) error {
+	data := c.RedisClient.HGetAll(key)
+	return i.DecodeMap(data)
 }

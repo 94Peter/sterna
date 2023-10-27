@@ -57,8 +57,9 @@ type RedisClient interface {
 	Del(k string) (int64, error)
 	LPush(k string, v interface{}) (int64, error)
 	RPop(k string) ([]byte, error)
-	HMGet(key string, field ...string) []interface{}
-	HMSet(key string, values ...interface{}) error
+	HGet(key string, field string) string
+	HSet(key string, values map[string]string) error
+	HGetAll(key string) map[string]string
 	Exists(key string) bool
 	Expired(key string, d time.Duration) (bool, error)
 	NewPiple() CachePipel
@@ -131,12 +132,23 @@ func (rci *redisV8CltImpl) Exists(key string) bool {
 	return rci.clt.Exists(rci.ctx, key).Val() == 1
 }
 
-func (rci *redisV8CltImpl) HMGet(key string, field ...string) []interface{} {
-	return rci.clt.HMGet(rci.ctx, key, field...).Val()
+func (rci *redisV8CltImpl) HGetAll(key string) map[string]string {
+	return rci.clt.HGetAll(rci.ctx, key).Val()
 }
 
-func (rci *redisV8CltImpl) HMSet(key string, values ...interface{}) error {
-	return rci.clt.HMSet(rci.ctx, key, values...).Err()
+func (rci *redisV8CltImpl) HGet(key string, field string) string {
+	return rci.clt.HGet(rci.ctx, key, field).Val()
+}
+
+func (rci *redisV8CltImpl) HSet(key string, values map[string]string) error {
+	vals := make([]any, len(values)*2)
+	i := 0
+	for k, v := range values {
+		vals[i] = k
+		vals[i+1] = v
+		i += 2
+	}
+	return rci.clt.HSet(rci.ctx, key, vals...).Err()
 }
 
 func (rci *redisV8CltImpl) NewPiple() CachePipel {
