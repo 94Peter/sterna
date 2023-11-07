@@ -90,11 +90,15 @@ func Format(inter interface{}, f func(i interface{}) map[string]interface{}) (in
 	}
 	v := reflect.ValueOf(inter)
 	l := v.Len()
-	ret := make([]map[string]interface{}, l)
+	count := 0
+	ret := []map[string]interface{}{}
 	for i := 0; i < l; i++ {
-		ret[i] = f(v.Index(i).Interface())
+		if data := f(v.Index(i).Interface()); data != nil {
+			ret = append(ret, data)
+			count++
+		}
 	}
-	return ret, l
+	return ret, count
 }
 
 func GetObjectID(id interface{}) (primitive.ObjectID, error) {
