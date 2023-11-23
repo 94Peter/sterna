@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/94peter/sterna/util"
@@ -27,6 +29,10 @@ const (
 	PermTmp     = Perm("tmp")
 )
 
+type GcpDI interface {
+	NewStorage() (Storage, error)
+}
+
 type Storage interface {
 	GetAttr(ctx context.Context, key string, pm Perm) (*storage.ObjectAttrs, error)
 	RemoveObject(ctx context.Context, key string, pm Perm) error
@@ -41,38 +47,85 @@ type Storage interface {
 
 type GcpConf struct {
 	CredentialsFile string `yaml:"credentailsFile"`
+	CredentailsUrl  string `yaml:"credentailsUrl"`
 	Bucket          string
 	PublicBucket    string `yaml:"publicBucket"`
 	TmpBucket       string `yaml:"tmpBucket"`
+}
 
+func downloadFile(filepath string, url string) error {
+	// Get the data
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("bad status: %s", resp.Status)
+	}
+
+	// Create the file
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	return err
+}
+
+func (gcp *GcpConf) NewStorage() (Storage, error) {
+	if gcp.CredentailsUrl != "" {
+		filePath := fmt.Sprintf("/tmp/%s.json", util.MD5(gcp.CredentailsUrl))
+		if !util.FileExists(filePath) {
+			err := downloadFile(filePath, gcp.CredentailsUrl)
+			if err != nil {
+				return nil, err
+			}
+		}
+		gcp.CredentialsFile = filePath
+	}
+	jsonKey, err := os.ReadFile(gcp.CredentialsFile)
+	if err != nil {
+		return nil, err
+	}
+	credentails, err := google.CredentialsFromJSON(context.Background(), jsonKey, storage.ScopeFullControl)
+	if err != nil {
+		return nil, err
+	}
+
+	return &storageImpl{
+		GcpConf:     gcp,
+		jsonData:    jsonKey,
+		credentials: credentails,
+	}, nil
+}
+
+func (gcp *GcpConf) getBucket(p Perm) string {
+	switch p {
+	case PermPrivate:
+		return gcp.Bucket
+	case PermPublic:
+		return gcp.PublicBucket
+	case PermTmp:
+		return gcp.TmpBucket
+	}
+	return ""
+}
+
+type storageImpl struct {
+	*GcpConf
+	jsonData    []byte
 	credentials *google.Credentials
 }
 
-func (gcp *GcpConf) getCredentials(ctx context.Context) (*google.Credentials, error) {
-	if gcp.credentials != nil {
-		return gcp.credentials, nil
-	}
-	jsonKey, err := ioutil.ReadFile(gcp.CredentialsFile)
-	if err != nil {
-		return nil, err
-	}
-	credentails, err := google.CredentialsFromJSON(ctx, jsonKey, storage.ScopeFullControl)
-	if err != nil {
-		return nil, err
-	}
-	gcp.credentials = credentails
-	return credentails, nil
+func (gcp *storageImpl) getClient(ctx context.Context) (*storage.Client, error) {
+	return storage.NewClient(ctx, option.WithCredentials(gcp.credentials))
 }
 
-func (gcp *GcpConf) getClient(ctx context.Context) (*storage.Client, error) {
-	credentails, err := gcp.getCredentials(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return storage.NewClient(ctx, option.WithCredentials(credentails))
-}
-
-func (gcp *GcpConf) Write(ctx context.Context, key string, pm Perm, writeData func(w io.Writer) error) (path string, err error) {
+func (gcp *storageImpl) Write(ctx context.Context, key string, pm Perm, writeData func(w io.Writer) error) (path string, err error) {
 	client, err := gcp.getClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("storage.NewClient: %v", err)
@@ -98,7 +151,7 @@ func (gcp *GcpConf) Write(ctx context.Context, key string, pm Perm, writeData fu
 	return
 }
 
-func (gcp *GcpConf) WriteString(ctx context.Context, key string, content string, pm Perm) error {
+func (gcp *storageImpl) WriteString(ctx context.Context, key string, content string, pm Perm) error {
 	client, err := gcp.getClient(ctx)
 	if err != nil {
 		return fmt.Errorf("storage.NewClient: %v", err)
@@ -120,7 +173,7 @@ func (gcp *GcpConf) WriteString(ctx context.Context, key string, content string,
 	return nil
 }
 
-func (gcp *GcpConf) RemoveObject(ctx context.Context, key string, pm Perm) error {
+func (gcp *storageImpl) RemoveObject(ctx context.Context, key string, pm Perm) error {
 	client, err := gcp.getClient(ctx)
 	if err != nil {
 		return fmt.Errorf("storage.NewClient: %v", err)
@@ -139,7 +192,7 @@ func (gcp *GcpConf) RemoveObject(ctx context.Context, key string, pm Perm) error
 	return nil
 }
 
-func (gcp *GcpConf) OpenFile(ctx context.Context, key string, pm Perm) (io.Reader, error) {
+func (gcp *storageImpl) OpenFile(ctx context.Context, key string, pm Perm) (io.Reader, error) {
 	client, err := gcp.getClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("storage.NewClient: %v", err)
@@ -163,7 +216,7 @@ func (gcp *GcpConf) OpenFile(ctx context.Context, key string, pm Perm) (io.Reade
 	return bytes.NewReader(data), nil
 }
 
-func (gcp *GcpConf) GetAttr(ctx context.Context, key string, pm Perm) (*storage.ObjectAttrs, error) {
+func (gcp *storageImpl) GetAttr(ctx context.Context, key string, pm Perm) (*storage.ObjectAttrs, error) {
 	client, err := gcp.getClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("storage.NewClient: %v", err)
@@ -177,11 +230,11 @@ func (gcp *GcpConf) GetAttr(ctx context.Context, key string, pm Perm) (*storage.
 	return objectHandle.Attrs(ctx)
 }
 
-func (gcp *GcpConf) GetPublicUrl(ctx context.Context, key string) (myurl string, err error) {
+func (gcp *storageImpl) GetPublicUrl(ctx context.Context, key string) (myurl string, err error) {
 	return gcp.GetDownloadUrl(ctx, key, PermPublic)
 }
 
-func (gcp *GcpConf) GetDownloadUrl(ctx context.Context, key string, p Perm) (myurl string, err error) {
+func (gcp *storageImpl) GetDownloadUrl(ctx context.Context, key string, p Perm) (myurl string, err error) {
 	client, err := gcp.getClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("storage.NewClient: %v", err)
@@ -211,24 +264,8 @@ func (gcp *GcpConf) GetDownloadUrl(ctx context.Context, key string, p Perm) (myu
 	return
 }
 
-func (gcp *GcpConf) getBucket(p Perm) string {
-	switch p {
-	case PermPrivate:
-		return gcp.Bucket
-	case PermPublic:
-		return gcp.PublicBucket
-	case PermTmp:
-		return gcp.TmpBucket
-	}
-	return ""
-}
-
-func (gcp *GcpConf) SignedURL(key string, contentType string, pm Perm, expDuration time.Duration) (url string, err error) {
-	jsonKey, err := ioutil.ReadFile(gcp.CredentialsFile)
-	if err != nil {
-		return
-	}
-	conf, err := google.JWTConfigFromJSON(jsonKey)
+func (gcp *storageImpl) SignedURL(key string, contentType string, pm Perm, expDuration time.Duration) (url string, err error) {
+	conf, err := google.JWTConfigFromJSON(gcp.jsonData)
 	if err != nil {
 		return
 	}
@@ -244,16 +281,12 @@ func (gcp *GcpConf) SignedURL(key string, contentType string, pm Perm, expDurati
 	return
 }
 
-func (gcp *GcpConf) GetAccessToken() (*oauth2.Token, error) {
-	b, err := ioutil.ReadFile(gcp.CredentialsFile)
-	if err != nil {
-		return nil, err
-	}
+func (gcp *storageImpl) GetAccessToken() (*oauth2.Token, error) {
 	var c = struct {
 		Email      string `json:"client_email"`
 		PrivateKey string `json:"private_key"`
 	}{}
-	json.Unmarshal(b, &c)
+	json.Unmarshal([]byte(gcp.jsonData), &c)
 	config := &jwt.Config{
 		Email:      c.Email,
 		PrivateKey: []byte(c.PrivateKey),
@@ -262,7 +295,7 @@ func (gcp *GcpConf) GetAccessToken() (*oauth2.Token, error) {
 		},
 		TokenURL: google.JWTTokenURL,
 	}
-	token, err := config.TokenSource(oauth2.NoContext).Token()
+	token, err := config.TokenSource(context.Background()).Token()
 	if err != nil {
 		return nil, err
 	}
