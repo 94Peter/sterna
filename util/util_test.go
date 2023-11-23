@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"testing"
 	"regexp"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -97,9 +97,52 @@ func Test_ReturnExist(t *testing.T) {
 
 func Test_regexpMatchString(t *testing.T) {
 	no := "abcdd##d"
-	ok,err := regexp.MatchString(`^[^!@#$%^&*()_+{}|"?:><,./;']*$`, no)
+	ok, err := regexp.MatchString(`^[^!@#$%^&*()_+{}|"?:><,./;']*$`, no)
 	fmt.Println(ok)
 	fmt.Println(err)
 	fmt.Println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 	assert.Nil(t, "out")
+}
+
+func TestIsRFC3339(t *testing.T) {
+	tests := []struct {
+		name     string
+		timeStr  string
+		expected error
+	}{
+		{
+			name:     "Valid RFC3339 time",
+			timeStr:  "2022-01-01T12:00:00Z",
+			expected: nil,
+		},
+		{
+			name:     "Valid RFC3339 time",
+			timeStr:  "2022-01-01T12:00:00+08:00",
+			expected: nil,
+		},
+		{
+			name:     "Invalid RFC3339 time",
+			timeStr:  "2022-01-01T12:00:00",
+			expected: ErrNotRfc3339,
+		},
+		{
+			name:     "Empty time string",
+			timeStr:  "",
+			expected: ErrNotRfc3339,
+		},
+		{
+			name:     "Invalid format",
+			timeStr:  "2022-01-01",
+			expected: ErrNotRfc3339,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := IsRFC3339(test.timeStr)
+			if err != test.expected {
+				t.Errorf("Expected error: %v, but got: %v", test.expected, err)
+			}
+		})
+	}
 }

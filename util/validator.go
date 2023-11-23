@@ -22,11 +22,14 @@ func InitValidator() {
 // CheckParam can help to verify if the input is valid or not.
 //
 // Input:
-//  s      : input map for validation.
-//  target : A map indicates that what validation should be applied to the input.
+//
+//	s      : input map for validation.
+//	target : A map indicates that what validation should be applied to the input.
+//
 // Output:
-//  bool   : Return true if valid, otherwise a false is returned.
-//  error  : the output of the detail of the error.
+//
+//	bool   : Return true if valid, otherwise a false is returned.
+//	error  : the output of the detail of the error.
 func CheckParam(param map[string]interface{}, target map[string][]string) (bool, map[string]string) {
 	var res bool = true
 	var detail string
@@ -176,7 +179,7 @@ func IsFloat64(param string, bound []float64) (float64, error) {
 	return num, nil
 }
 
-//IsBool transform strings of true and false into bool.
+// IsBool transform strings of true and false into bool.
 func IsBool(str string) (bool, error) {
 	return strconv.ParseBool(str)
 }
@@ -191,8 +194,8 @@ func CheckStruct(s interface{}) (bool, error) {
 	//BUG(Kevin Xu): haha
 }
 
-//IsStrInList can help to see if input is one of the target or not.
-//a non-empty error will be returned if input does match any of the target.
+// IsStrInList can help to see if input is one of the target or not.
+// a non-empty error will be returned if input does match any of the target.
 func IsStrInList(input string, target ...string) bool {
 	for _, paramName := range target {
 		if input == paramName {
@@ -203,13 +206,13 @@ func IsStrInList(input string, target ...string) bool {
 
 }
 
-//isMail can help to verify if the input is Email format or not
+// isMail can help to verify if the input is Email format or not
 func IsMail(param string) (bool, error) {
 	res := govalidator.IsEmail(param)
 	return res, errors.New("Nothing")
 }
 
-//Check if str is empty or not
+// Check if str is empty or not
 func required(str string) bool {
 	if len(str) > 0 {
 		return true
@@ -217,7 +220,7 @@ func required(str string) bool {
 	return false
 }
 
-//Check bool
+// Check bool
 func isBool(str string) bool {
 	_, err := strconv.ParseBool(str)
 	if err != nil {
@@ -329,7 +332,7 @@ func IsVATnumber(num string) bool {
 	}
 }
 
-//CheckTimeFormat is use to check if the string is correct time format or not
+// CheckTimeFormat is use to check if the string is correct time format or not
 func CheckTimeFormat(tim string) error {
 	timTime, err := time.Parse(time.RFC3339, tim)
 	if err != nil {
@@ -390,4 +393,15 @@ func IsLegalPhoneNumber(num string) (bool, error) {
 
 func IsMAC(mac string) bool {
 	return govalidator.IsMAC(mac)
+}
+
+const rfc3339Regexp = `^([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\.[0-9]+)?(([Zz])|([\+|\-]([01][0-9]|2[0-3]):[0-5][0-9]))$`
+
+var ErrNotRfc3339 = errors.New("format is like " + time.RFC3339)
+
+func IsRFC3339(timeStr string) error {
+	if x, _ := regexp.MatchString(rfc3339Regexp, timeStr); !x {
+		return ErrNotRfc3339
+	}
+	return nil
 }
